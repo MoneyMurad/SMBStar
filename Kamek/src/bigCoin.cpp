@@ -66,6 +66,8 @@ CREATE_STATE(dBigCoin_c, Collected);
 const SpriteData BigCoinData = {ProfileId::bigcoin, 8, -0x10, 0, 0, 0x100, 0x100, 0, 0, 0, 0, 0};
 Profile BigCoinProfile(&dBigCoin_c::build, SpriteId::bigcoin, &BigCoinData, ProfileId::bigcoin, ProfileId::bigcoin, "bigcoin", BCarc);
 
+extern "C" bool SpawnEffect(const char*, int, Vec*, S16Vec*, Vec*);
+
 dActor_c* dBigCoin_c::build() {
 	void *buf = AllocFromGameHeap1(sizeof(dBigCoin_c));
 	return new(buf) dBigCoin_c;
@@ -369,6 +371,22 @@ void dBigCoin_c::beginState_Collected()
 	if(this->coinAmount == 10) this->soundTimer = 10;
 	else if(this->coinAmount == 50) this->soundTimer = 16;
 	else this->soundTimer = 22;
+
+	Vec effectScale = (Vec){1.0, 1.0, 1.0};
+	float posOffset = 10.0f;
+
+	if(this->coinAmount == 50)
+	{	
+		effectScale = (Vec){1.5, 1.5, 1.5};
+		posOffset = 25.0f;
+	}
+	else if(this->coinAmount == 100)
+	{
+		effectScale = (Vec){2, 2, 2};
+		posOffset = 20.0f;
+	}
+
+	SpawnEffect("Wm_ob_coinkira", 0, &(Vec){this->pos.x, this->pos.y - posOffset, this->pos.z}, &(S16Vec){0,0,0}, &effectScale);
 }
 void dBigCoin_c::executeState_Collected() 
 {
