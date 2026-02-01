@@ -142,14 +142,13 @@ void dMegaMario_c::spriteCollision(ActivePhysics *apThis, ActivePhysics *apOther
 			((dActor_c*)apOther->owner)->pos = daPlayer->pos;
 		}
 
-	if (name == EN_NOKONOKO)
-	{
-		((dEn_c*)apOther->owner)->kill();
-		((dEn_c*)apOther->owner)->Delete(0);
-		return;
-	}
+	// Get our enemy
+	dEn_c* enemy = (dEn_c*)apOther->owner;
+	if (!enemy) return;
 
-    ((dEn_c*)apOther->owner)->kill();
+	// Pretend megamario hit them with mario's star-man
+	enemy->collisionCat3_StarPower(apOther, &daPlayer->aPhysics);
+	return;
 
 	return;
 }
