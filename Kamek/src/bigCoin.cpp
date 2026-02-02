@@ -377,13 +377,13 @@ void dBigCoin_c::beginState_Collected()
 
 	if(this->coinAmount == 50)
 	{	
-		effectScale = (Vec){1.5, 1.5, 1.5};
-		posOffset = 25.0f;
+		effectScale = (Vec){1.25, 1.25, 1.25};
+		posOffset = 12.0f;
 	}
 	else if(this->coinAmount == 100)
 	{
-		effectScale = (Vec){2, 2, 2};
-		posOffset = 20.0f;
+		effectScale = (Vec){1.5, 1.5, 1.5};
+		posOffset = 14.0f;
 	}
 
 	SpawnEffect("Wm_ob_coinkira", 0, &(Vec){this->pos.x, this->pos.y - posOffset, this->pos.z}, &(S16Vec){0,0,0}, &effectScale);
