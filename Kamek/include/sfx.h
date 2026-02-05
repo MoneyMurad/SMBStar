@@ -2,6 +2,8 @@
 #define __KAMEK_SFX_H
 
 #include <common.h>
+#include <asm_sfx.S>
+#include <game.h>
 
 enum SFX {
 	SE_NULL = -1,
@@ -1984,5 +1986,39 @@ enum SFX {
 	SE_GAKKI_L_1_ON = 1976,
 	SE_GAKKI_L_2_ON = 1977
 };
+
+void playSoundDistance(nw4r::snd::SoundHandle* handle, Vec3 pos, int id, float volume = 1.0, float pitch = 1.0, float distance = 500.0) {
+	ClassWithCameraInfo *cwci = ClassWithCameraInfo::instance;
+	if (cwci == 0) return;
+
+	Vec2 dist = {
+		cwci->screenCentreX - pos.x,
+		cwci->screenCentreY - pos.y
+	};
+	float v = max<float>(0.0, (1.0 - (sqrtf(dist.x * dist.x + dist.y * dist.y) / distance)) * 1.0);
+	if (v <= 0.0) v = 0.0;
+	else if (v > 1.0) v = 1.0;
+
+	PlaySoundWithFunctionB4(SoundRelatedClass, handle, id, 1);
+	handle->SetVolume(volume * v, 1);
+	if (pitch != 1.0) handle->SetPitch(pitch);
+}
+
+void setSoundDistance(nw4r::snd::SoundHandle* handle, Vec3 pos, float volume = 1.0, float pitch = 1.0, float distance = 500.0) {
+	if (!handle->Exists()) return;
+	ClassWithCameraInfo *cwci = ClassWithCameraInfo::instance;
+	if (cwci == 0) return;
+
+	Vec2 dist = {
+		cwci->screenCentreX - pos.x,
+		cwci->screenCentreY - pos.y
+	};
+	float v = max<float>(0.0, (1.0 - (sqrtf(dist.x * dist.x + dist.y * dist.y) / distance)) * 1.0);
+	if (v <= 0.0) v = 0.0;
+	else if (v > 1.0) v = 1.0;
+
+	handle->SetVolume(volume * v, 1);
+	if (pitch != 1.0) handle->SetPitch(pitch);
+}
 
 #endif

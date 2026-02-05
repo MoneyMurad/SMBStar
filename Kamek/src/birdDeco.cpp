@@ -235,6 +235,9 @@ void dBird_c::beginState_Fly()
 
     //this->y_speed_inc = 0.005;
 
+	//static nw4r::snd::StrmSoundHandle handle;
+	//PlaySoundWithFunctionB4(SoundRelatedClass, &handle, SFX_BIRD_CHIRP_3, 1);
+
     this->timer = 0;
 }
 void dBird_c::executeState_Fly()

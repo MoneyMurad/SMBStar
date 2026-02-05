@@ -2525,6 +2525,14 @@ SECTIONS {
 	
 	MaxCoins = 0x80427c04;
 	
+	/* MoreSFX */
+	NewSFXTable = 0x80450000;
+	NewSFXIndexes = 0x80460000;
+
+	doneWithNewSFXHax = 0x80283CE4;
+	PlaySoundWithFunctionB4_2 = 0x801951E4;
+	sException__Q24nw4r2dbFv = 0x803DA860;
+
 	/* daEnShell_c */
 	
 	sub_8003A240__FPvPv = 0x8003A240;
