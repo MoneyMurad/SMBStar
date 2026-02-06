@@ -6,6 +6,10 @@
 const char* SFXNameList [] = {
 	"original",				// 1999, DON'T USE THIS ONE
 	
+	"bird_chirp_1",
+	"bird_chirp_2",
+	"bird_chirp_3",
+	"bird_fly",
 	NULL
 };
 

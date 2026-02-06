@@ -200,11 +200,30 @@ int dBird_c::onDelete()
 }
 
 // for waiting around like a bummy bird
-void dBird_c::beginState_Wait() {}
+void dBird_c::beginState_Wait() {
+	this->timer = 0;
+}
 void dBird_c::executeState_Wait()
 {
     if(this->chrAnimation.isAnimationDone())
+	{
         this->chrAnimation.setCurrentFrame(0.0);
+		
+		if(this->nearestPlayerDistance() <= 200.0f)
+		{
+			static nw4r::snd::StrmSoundHandle handle;
+			int random = GenerateRandomNumber(3);
+
+			if(random == 0)
+				PlaySoundWithFunctionB4(SoundRelatedClass, &handle, SFX_BIRD_CHIRP_1, 1);
+			else if(random == 1)
+				PlaySoundWithFunctionB4(SoundRelatedClass, &handle, SFX_BIRD_CHIRP_2, 1);
+			else if(random == 2)
+				PlaySoundWithFunctionB4(SoundRelatedClass, &handle, SFX_BIRD_CHIRP_3, 1);
+
+			this->timer = 0;
+		}
+	}
 
     if(this->nearestPlayerDistance() <= 64.0f)
         doStateChange(&StateID_PrepareFly);
@@ -235,8 +254,8 @@ void dBird_c::beginState_Fly()
 
     //this->y_speed_inc = 0.005;
 
-	//static nw4r::snd::StrmSoundHandle handle;
-	//PlaySoundWithFunctionB4(SoundRelatedClass, &handle, SFX_BIRD_CHIRP_3, 1);
+	static nw4r::snd::StrmSoundHandle handle;
+	PlaySoundWithFunctionB4(SoundRelatedClass, &handle, SFX_BIRD_FLY, 1);
 
     this->timer = 0;
 }
