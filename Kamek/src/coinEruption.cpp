@@ -158,7 +158,7 @@ void daCoinEruption_c::executeState_Spawn()
 	rndSpeed = (isNeg == 1) ? rndSpeed : rndSpeed * -1;
 	
 	// Spawn our coin!
-	daCoin = (dStageActor_c*)CreateActor(403, 0, this->pos, 0, 0);
+	daCoin = (dStageActor_c*)CreateActor(402, 0, this->pos, 0, 0);
 	daCoin->speed.x = rndSpeed;
 	
 	if(this->dir == 1)
