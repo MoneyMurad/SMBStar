@@ -72,6 +72,7 @@ public:
     float nearestPlayerDistance();
 
     bool playersGoUp[4];
+    bool prevJump[4];
 
     int updatePlayersOnBlock();
     bool playerIsGoUp(int playerID);
@@ -117,21 +118,20 @@ int daEnNoteBlock_c::updatePlayersOnBlock() {
     bool anyPlayersGoUp = false;
     
     for (int i = 0; i < 4; i++) {
+        this->playersGoUp[i] = false;
         if (dAcPy_c *player = dAcPy_c::findByID(i)) {
             if(player->pos.x >= pos.x - 10 && player->pos.x <= pos.x + 10) {
                 if(player->pos.y >= pos.y - 5 && player->pos.y <= pos.y + 12) {
+                    this->playersGoUp[i] = true;
+                    anyPlayersGoUp = true;
+
                     // make sure we're not already jumping prior
                     if(strcmp(player->states2.getCurrentState()->getName(), "daPlBase_c::StateID_Jump") != 0)
                     {
-                        this->playersGoUp[i] = true;
-                        anyPlayersGoUp = true;
-
                         wasSteppedOn = false;
                     }
                 }
             }
-            else 
-                this->playersGoUp[i] = false;
         }
     }
     
@@ -197,6 +197,7 @@ int daEnNoteBlock_c::onCreate() {
 
     for(int i = 0; i < 4; i++) {
         this->playersGoUp[i] = false;
+        this->prevJump[i] = false;
     }
 
     wasSteppedOn = true;
@@ -244,7 +245,9 @@ int daEnNoteBlock_c::onExecute() {
     dStateBase_c* currentState = this->acState.getCurrentState();
 
     // Update tile state based on block state
-    if(this->pos.y == originalY) {
+    if(bounceAnimActive) {
+        updateTileState(TILE_BOUNCE);
+    } else if(this->pos.y == originalY) {
         updateTileState(TILE_SLEEP);
     }
     
@@ -252,7 +255,7 @@ int daEnNoteBlock_c::onExecute() {
     if(onBlock) 
     {
         this->pos.y = originalY - 0.75f;
-        if(currentTileState != TILE_BOUNCE) {
+        if(!bounceAnimActive && currentTileState != TILE_BOUNCE) {
             updateTileState(TILE_WAKE);
         }
     }
@@ -271,9 +274,8 @@ int daEnNoteBlock_c::onExecute() {
         if (dAcPy_c *player = dAcPy_c::findByID(i)) {
             //OSReport("Player %d is on block: %d\n", i, playerIsGoUp(i));
             //OSReport("player current state: %s\n", player->states2.getCurrentState()->getName());
-
-            if(playerIsGoUp(i) && !(strcmp(player->states2.getCurrentState()->getName(), "daPlBase_c::StateID_Jump")))
-            {
+            bool curJump = (strcmp(player->states2.getCurrentState()->getName(), "daPlBase_c::StateID_Jump") == 0);
+            if(playerIsGoUp(i) && curJump && player->speed.y > 0.0f && !prevJump[i]) {
                 updateTileState(TILE_BOUNCE);
                 bounceTimer = 0; // Reset bounce timer
                 bouncePlayer(player, 4.5f);
@@ -285,6 +287,7 @@ int daEnNoteBlock_c::onExecute() {
                 bouncedThisFrame = true;
                 wasSteppedOn = true;
             }
+            prevJump[i] = curJump;
         }
     }
 
@@ -454,7 +457,7 @@ bool daEnNoteBlock_c::applyStepOffAnim() {
     static const BounceKey keys[] = {
         {0, 0.0f, 1.0f},
         {3, -1.05f, 1.0f},
-        {8, 2.10f, 1.08f},
+        {8, 2.10f, 1.0f},
         {14, -0.70f, 1.0f},
         {20, 0.35f, 1.0f},
         {24, -0.175f, 1.0f},
