@@ -10,6 +10,8 @@
 #include "boss.h"
 
 const char* BDarc[] = {"obj_bird", NULL};
+static const float kBirdChirpRange = 200.0f;
+static const float kBirdScareRange = kBirdChirpRange * 0.32f;
 
 class dBird_c : public daBoss {
     int onCreate();
@@ -24,12 +26,17 @@ class dBird_c : public daBoss {
 	m3d::mdl_c bodyModel;
 	m3d::anmChr_c chrAnimation;
     
-    int timer;
-    bool fliesLeft;
+	int timer;
+	bool fliesLeft;
+	ActivePhysics chirpAPhysics;
+	ActivePhysics scareAPhysics;
+	u8 chirpHitFrames;
+	u8 scareHitFrames;
 
-    void updateModelMatrices();
+	void updateModelMatrices();
 	void bindAnimChr_and_setUpdateRate(const char* name, int unk, float unk2, float rate);
-	float nearestPlayerDistance();
+	void markPlayerInRange(ActivePhysics *apThis);
+	bool isPlayerInSquare(float halfSize);
 
 	void playerCollision(ActivePhysics *apThis, ActivePhysics *apOther);
 	void spriteCollision(ActivePhysics *apThis, ActivePhysics *apOther);
@@ -67,13 +74,21 @@ dActor_c* dBird_c::build() {
 	return new(buf) dBird_c;
 }
 
+void dBird_c::markPlayerInRange(ActivePhysics *apThis) {
+	if (apThis == &this->chirpAPhysics)
+		this->chirpHitFrames = 2;
+	if (apThis == &this->scareAPhysics)
+		this->scareHitFrames = 2;
+}
+
 void dBird_c::playerCollision(ActivePhysics *apThis, ActivePhysics *apOther)
 {
+	markPlayerInRange(apThis);
 	return;
 }
 void dBird_c::yoshiCollision(ActivePhysics *apThis, ActivePhysics *apOther)
 {
-	playerCollision(apThis, apOther);
+	markPlayerInRange(apThis);
 }
 void dBird_c::spriteCollision(ActivePhysics *apThis, ActivePhysics *apOther) 
 {
@@ -114,8 +129,23 @@ bool dBird_c::collisionCat3_StarPower(ActivePhysics *apThis, ActivePhysics *apOt
 	return false;
 }
 bool dBird_c::collisionCat5_Mario(ActivePhysics *apThis, ActivePhysics *apOther) {
-	playerCollision(apThis, apOther);
+	markPlayerInRange(apThis);
 	return true;
+}
+
+bool dBird_c::isPlayerInSquare(float halfSize) {
+	for (int i = 0; i < 4; i++) {
+		if (dAcPy_c *player = dAcPy_c::findByID(i)) {
+			if (strcmp(player->states2.getCurrentState()->getName(), "dAcPy_c::StateID_Balloon")) {
+				float dx = abs(player->pos.x - pos.x);
+				float dy = abs(player->pos.y - pos.y);
+				if (dx <= halfSize && dy <= halfSize)
+					return true;
+			}
+		}
+	}
+
+	return false;
 }
 
 void dBird_c::updateModelMatrices() {
@@ -135,22 +165,6 @@ void dBird_c::bindAnimChr_and_setUpdateRate(const char* name, int unk, float unk
 }
 
 
-float dBird_c::nearestPlayerDistance() {
-	float bestSoFar = 10000.0f;
-
-	for (int i = 0; i < 4; i++) {
-		if (dAcPy_c *player = dAcPy_c::findByID(i)) {
-			if (strcmp(player->states2.getCurrentState()->getName(), "dAcPy_c::StateID_Balloon")) {
-				float thisDist = abs(player->pos.x - pos.x);
-				if (thisDist < bestSoFar)
-					bestSoFar = thisDist;
-			}
-		}
-	}
-
-	return bestSoFar;
-}
-
 int dBird_c::onCreate()
 {
     allocator.link(-1, GameHeaps[0], 0, 0x20);
@@ -166,6 +180,30 @@ int dBird_c::onCreate()
 	this->chrAnimation.setup(mdl, anmChr, &this->allocator, 0);
 
 	allocator.unlink();
+
+	ActivePhysics::Info chirpInfo;
+	chirpInfo.xDistToCenter = 0.0f;
+	chirpInfo.yDistToCenter = 0.0f;
+	chirpInfo.xDistToEdge = kBirdChirpRange;
+	chirpInfo.yDistToEdge = kBirdChirpRange;
+	chirpInfo.category1 = 0x5;
+	chirpInfo.category2 = 0x0;
+	chirpInfo.bitfield1 = 0x4F;
+	chirpInfo.bitfield2 = 0x200;
+	chirpInfo.unkShort1C = 0;
+	chirpInfo.callback = &dEn_c::collisionCallback;
+
+	ActivePhysics::Info scareInfo = chirpInfo;
+	scareInfo.xDistToEdge = kBirdScareRange;
+	scareInfo.yDistToEdge = kBirdScareRange;
+
+	this->chirpAPhysics.initWithStruct(this, &chirpInfo);
+	this->chirpAPhysics.addToList();
+	this->scareAPhysics.initWithStruct(this, &scareInfo);
+	this->scareAPhysics.addToList();
+
+	this->chirpHitFrames = 0;
+	this->scareHitFrames = 0;
 
     this->fliesLeft = (settings & 0x2000);
 
@@ -196,6 +234,8 @@ int dBird_c::onExecute()
 
 int dBird_c::onDelete()
 {
+	this->chirpAPhysics.removeFromList();
+	this->scareAPhysics.removeFromList();
     return true;
 }
 
@@ -210,8 +250,11 @@ void dBird_c::executeState_Wait()
         this->chrAnimation.setCurrentFrame(0.0);
 	}
 
+	bool chirpReady = (this->chirpHitFrames > 0) || isPlayerInSquare(kBirdChirpRange);
+	bool scareReady = (this->scareHitFrames > 0) || isPlayerInSquare(kBirdScareRange);
+
 	this->timer++;
-	if(this->nearestPlayerDistance() <= 200.0f && this->timer >= 200)
+	if(chirpReady && this->timer >= 200)
 	{
 		static nw4r::snd::StrmSoundHandle handle;
 		int random = GenerateRandomNumber(3);
@@ -226,8 +269,13 @@ void dBird_c::executeState_Wait()
 		this->timer = 0;
 	}
 
-    if(this->nearestPlayerDistance() <= 64.0f)
+    if(scareReady)
         doStateChange(&StateID_PrepareFly);
+
+	if (this->chirpHitFrames > 0)
+		this->chirpHitFrames--;
+	if (this->scareHitFrames > 0)
+		this->scareHitFrames--;
 }
 void dBird_c::endState_Wait() {}
 
