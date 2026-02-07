@@ -208,21 +208,22 @@ void dBird_c::executeState_Wait()
     if(this->chrAnimation.isAnimationDone())
 	{
         this->chrAnimation.setCurrentFrame(0.0);
-		
-		if(this->nearestPlayerDistance() <= 200.0f)
-		{
-			static nw4r::snd::StrmSoundHandle handle;
-			int random = GenerateRandomNumber(3);
+	}
 
-			if(random == 0)
-				PlaySoundWithFunctionB4(SoundRelatedClass, &handle, SFX_BIRD_CHIRP_1, 1);
-			else if(random == 1)
-				PlaySoundWithFunctionB4(SoundRelatedClass, &handle, SFX_BIRD_CHIRP_2, 1);
-			else if(random == 2)
-				PlaySoundWithFunctionB4(SoundRelatedClass, &handle, SFX_BIRD_CHIRP_3, 1);
+	this->timer++;
+	if(this->nearestPlayerDistance() <= 200.0f && this->timer >= 200)
+	{
+		static nw4r::snd::StrmSoundHandle handle;
+		int random = GenerateRandomNumber(3);
 
-			this->timer = 0;
-		}
+		if(random == 0)
+			PlaySoundWithFunctionB4(SoundRelatedClass, &handle, SFX_BIRD_CHIRP_1, 1);
+		else if(random == 1)
+			PlaySoundWithFunctionB4(SoundRelatedClass, &handle, SFX_BIRD_CHIRP_2, 1);
+		else if(random == 2)
+			PlaySoundWithFunctionB4(SoundRelatedClass, &handle, SFX_BIRD_CHIRP_3, 1);
+
+		this->timer = 0;
 	}
 
     if(this->nearestPlayerDistance() <= 64.0f)
