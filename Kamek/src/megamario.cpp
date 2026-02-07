@@ -630,6 +630,7 @@ Vec oldPos;
 bool jump;
 bool turning;
 int turnHoldFrames;
+bool jumpCutApplied;
 
 void daPlBase_c::beginState_MegaMario() {
 	this->setFlag(0xBB); // invis
@@ -637,6 +638,7 @@ void daPlBase_c::beginState_MegaMario() {
 	jump = false;
 	turning = false;
 	turnHoldFrames = 0;
+	jumpCutApplied = false;
 }
 void daPlBase_c::executeState_MegaMario() {
 	dMegaMario_c* megaMario = (dMegaMario_c*)FindActorByType(mega, 0);
@@ -725,12 +727,22 @@ void daPlBase_c::executeState_MegaMario() {
 		megaMario->speed.y = 8.5f;
 		megaMario->max_speed.y = 8.5f;
 		megaMario->texState = 0; // set frame to jump
+		jumpCutApplied = false;
 	}
 
 	if(!megaMario->collMgr.isOnTopOfTile())
 	{
-		megaMario->speed.y -= 0.15;
-		megaMario->max_speed.y -= 0.35;
+		bool holdingJump = (con->heldButtons & WPAD_TWO);
+		if (megaMario->speed.y > 0.0f && !holdingJump && !jumpCutApplied) {
+			if (megaMario->speed.y > 3.5f)
+				megaMario->speed.y = 3.5f;
+			if (megaMario->max_speed.y > 3.5f)
+				megaMario->max_speed.y = 3.5f;
+			jumpCutApplied = true;
+		}
+
+		megaMario->speed.y -= 0.15f;
+		megaMario->max_speed.y -= 0.35f;
 		if (megaMario->max_speed.y < -7.0f)
 		{
 			megaMario->max_speed.y = -7.5f;
