@@ -653,7 +653,7 @@ void daPlBase_c::executeState_MegaMario() {
 	Remocon* con = GetRemoconMng()->controllers[this->settings % 4];
 	
 	bool onGround = megaMario->collMgr.isOnTopOfTile();
-	float accelScale = onGround ? 1.0f : 0.35f;
+	float accelScaleBase = onGround ? 1.0f : 0.15f;
 	float baseMax = MAX_MEGA_SPEED;
 	float boostMax = MAX_MEGA_SPEED * 1.5f;
 	float targetMax = (con->heldButtons & WPAD_ONE) ? boostMax : baseMax;
@@ -663,6 +663,8 @@ void daPlBase_c::executeState_MegaMario() {
 	float speedCap = currentCap + (targetMax - currentCap) * 0.01f;
 	
 	if(con->heldButtons & WPAD_LEFT) {
+		float accelScale = accelScaleBase;
+
 		if(megaMario->speed.x >= MAX_MEGA_SPEED) {
 			if (!turning)
 				turnHoldFrames = 8;
@@ -690,6 +692,8 @@ void daPlBase_c::executeState_MegaMario() {
 	}
 
 	if(con->heldButtons & WPAD_RIGHT) {
+		float accelScale = accelScaleBase;
+
 		if(megaMario->speed.x <= -MAX_MEGA_SPEED) {
 			if (!turning)
 				turnHoldFrames = 8;
