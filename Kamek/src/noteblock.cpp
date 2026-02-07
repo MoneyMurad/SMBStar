@@ -52,6 +52,9 @@ public:
     bool bounceAnimActive;
     int bounceAnimTimer;
     float bounceBaseY;
+    bool stepOffAnimActive;
+    int stepOffAnimTimer;
+    float stepOffBaseY;
     
     // Color variants
     enum Color {
@@ -75,6 +78,7 @@ public:
     void bouncePlayerWhenJumpedOn(void *player);
     void updateTileState(TileState newState);
     bool applyBounceAnim();
+    bool applyStepOffAnim();
 
     USING_STATES(daEnNoteBlock_c);
     DECLARE_STATE(Spawn);
@@ -187,6 +191,9 @@ int daEnNoteBlock_c::onCreate() {
     bounceAnimActive = false;
     bounceAnimTimer = 0;
     bounceBaseY = originalY;
+    stepOffAnimActive = false;
+    stepOffAnimTimer = 0;
+    stepOffBaseY = originalY;
 
     for(int i = 0; i < 4; i++) {
         this->playersGoUp[i] = false;
@@ -241,17 +248,13 @@ int daEnNoteBlock_c::onExecute() {
         updateTileState(TILE_SLEEP);
     }
     
-    if(updatePlayersOnBlock()) 
+    int onBlock = updatePlayersOnBlock();
+    if(onBlock) 
     {
         this->pos.y = originalY - 0.75f;
         if(currentTileState != TILE_BOUNCE) {
             updateTileState(TILE_WAKE);
         }
-    }
-    else if(!updatePlayersOnBlock() && !wasSteppedOn && !bounceAnimActive) {
-        wasSteppedOn = true;
-        if(!(strcmp(currentState->getName(), "daEnNoteBlock_c::StateID_Wait")))
-            doStateChange(&StateID_GoUp);
     }
     
     // Handle bounce timer
@@ -263,6 +266,7 @@ int daEnNoteBlock_c::onExecute() {
         }
     }
 
+    bool bouncedThisFrame = false;
     for (int i = 0; i < 4; i++) {
         if (dAcPy_c *player = dAcPy_c::findByID(i)) {
             //OSReport("Player %d is on block: %d\n", i, playerIsGoUp(i));
@@ -278,11 +282,29 @@ int daEnNoteBlock_c::onExecute() {
                 bounceAnimTimer = 0;
                 bounceBaseY = originalY;
                 doStateChange(&StateID_Wait);
+                bouncedThisFrame = true;
+                wasSteppedOn = true;
             }
         }
     }
 
+    if(bouncedThisFrame) {
+        stepOffAnimActive = false;
+        stepOffAnimTimer = 0;
+    }
+    else if(!onBlock && !wasSteppedOn && !bounceAnimActive && !stepOffAnimActive) {
+        wasSteppedOn = true;
+        if(!(strcmp(currentState->getName(), "daEnNoteBlock_c::StateID_Wait"))) {
+            stepOffAnimActive = true;
+            stepOffAnimTimer = 0;
+            stepOffBaseY = originalY;
+            this->pos.y = originalY;
+            doStateChange(&StateID_Wait);
+        }
+    }
+
     applyBounceAnim();
+    applyStepOffAnim();
 
     return true;
 }
@@ -416,6 +438,59 @@ bool daEnNoteBlock_c::applyBounceAnim() {
     this->pos.y = bounceBaseY + y;
     this->scale = (Vec){s, s, s};
     bounceAnimTimer++;
+    return true;
+}
+
+bool daEnNoteBlock_c::applyStepOffAnim() {
+    if (!stepOffAnimActive)
+        return false;
+
+    struct BounceKey {
+        int frame;
+        float y;
+        float scale;
+    };
+
+    static const BounceKey keys[] = {
+        {0, 0.0f, 1.0f},
+        {3, -1.05f, 1.0f},
+        {8, 2.10f, 1.08f},
+        {14, -0.70f, 1.0f},
+        {20, 0.35f, 1.0f},
+        {24, -0.175f, 1.0f},
+        {26, 0.0f, 1.0f}
+    };
+
+    const int keyCount = sizeof(keys) / sizeof(keys[0]);
+    const int lastFrame = keys[keyCount - 1].frame;
+
+    if (stepOffAnimTimer >= lastFrame) {
+        this->pos.y = stepOffBaseY + keys[keyCount - 1].y;
+        float s = keys[keyCount - 1].scale;
+        this->scale = (Vec){s, s, s};
+        stepOffAnimActive = false;
+        stepOffAnimTimer = 0;
+        return true;
+    }
+
+    const BounceKey *k0 = &keys[0];
+    const BounceKey *k1 = &keys[1];
+    for (int i = 1; i < keyCount; i++) {
+        if (stepOffAnimTimer <= keys[i].frame) {
+            k0 = &keys[i - 1];
+            k1 = &keys[i];
+            break;
+        }
+    }
+
+    float span = (float)(k1->frame - k0->frame);
+    float t = span > 0.0f ? (stepOffAnimTimer - k0->frame) / span : 0.0f;
+    float y = k0->y + (k1->y - k0->y) * t;
+    float s = k0->scale + (k1->scale - k0->scale) * t;
+
+    this->pos.y = stepOffBaseY + y;
+    this->scale = (Vec){s, s, s};
+    stepOffAnimTimer++;
     return true;
 }
 
