@@ -39,6 +39,7 @@ public:
     bool wasSteppedOn;
     bool playerJumped;
     int timer;
+    bool allowVisual;
     
     // Tile animation states
     enum TileState {
@@ -72,11 +73,13 @@ public:
     void updateTileState(TileState newState);
 
     USING_STATES(daEnNoteBlock_c);
+    DECLARE_STATE(Spawn);
     DECLARE_STATE(Wait);
     DECLARE_STATE(GoUp);
     DECLARE_STATE(GoDown);
 };
 
+CREATE_STATE(daEnNoteBlock_c, Spawn);
 CREATE_STATE_E(daEnNoteBlock_c, Wait);
 CREATE_STATE_E(daEnNoteBlock_c, GoUp);
 CREATE_STATE_E(daEnNoteBlock_c, GoDown);
@@ -141,6 +144,8 @@ void daEnNoteBlock_c::updateTileState(TileState newState) {
 }
 
 int daEnNoteBlock_c::onCreate() {
+    this->allowVisual = false;
+
     blockInit(pos.y);
 
     physicsInfo.x1 = -8;
@@ -160,8 +165,8 @@ int daEnNoteBlock_c::onCreate() {
     physics.addToList();
 
     // Setup TileRenderer
-    TileRenderer::List *list = dBgGm_c::instance->getTileRendererList(0);
-    list->add(&tile);
+    //TileRenderer::List *list = dBgGm_c::instance->getTileRendererList(0);
+    //list->add(&tile);
 
     // Randomly select a color variant
     int ourColor = (settings & 0xF00) >> 8;
@@ -169,6 +174,7 @@ int daEnNoteBlock_c::onCreate() {
 
     tile.x = pos.x - 8;
     tile.y = -(8+pos.y);
+    this->scale = (Vec){0.0, 0.0, 0.0};
     tile.tileNumber = TileNumbers[selectedColor][TILE_SLEEP]; // Start with sleep state
 
     originalY = pos.y;
@@ -181,8 +187,20 @@ int daEnNoteBlock_c::onCreate() {
 
     wasSteppedOn = true;
     playerJumped = false;
+    
+    
+    if(!((this->settings >> 16) & 0xFFF))
+    {
+        this->scale = (Vec){1.0, 1.0, 1.0};
 
-    doStateChange(&daEnNoteBlock_c::StateID_Wait);
+        TileRenderer::List *list = dBgGm_c::instance->getTileRendererList(0);
+        list->add(&tile);
+
+        doStateChange(&daEnNoteBlock_c::StateID_Wait);
+    }
+    else
+        this->scale = (Vec){0.0, 0.0, 0.0};
+
 
     return true;
 }
@@ -206,6 +224,9 @@ int daEnNoteBlock_c::onExecute() {
 
     acState.execute();
 
+    if(this->scale.x == 0.0)
+        doStateChange(&daEnNoteBlock_c::StateID_Spawn);
+    
     dStateBase_c* currentState = this->acState.getCurrentState();
 
     // Update tile state based on block state
@@ -309,6 +330,26 @@ void daEnNoteBlock_c::executeState_GoDown() {
         doStateChange(&StateID_Wait);
     }
 }
+
+void daEnNoteBlock_c::beginState_Spawn() {
+    TileRenderer::List *list = dBgGm_c::instance->getTileRendererList(0);
+    list->add(&tile);
+
+    this->scale = (Vec){0.0, 0.0, 0.0};
+}
+void daEnNoteBlock_c::executeState_Spawn()
+{
+    this->scale.x += 0.2;
+    this->scale.y += 0.2;
+    this->scale.z += 0.2;
+
+    if(this->scale.x >= 1.0)
+    {
+        this->scale = (Vec){1.0, 1.0, 1.0};
+        doStateChange(&StateID_Wait);
+    }
+}
+void daEnNoteBlock_c::endState_Spawn() {}
 
 float daEnNoteBlock_c::nearestPlayerDistance() {
 	float bestSoFar = 10000.0f;

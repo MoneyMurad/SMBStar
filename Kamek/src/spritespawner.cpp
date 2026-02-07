@@ -48,6 +48,9 @@ int dSpriteSpawner_c::onExecute() {
 		if (!childID) {
 			dStageActor_c *newAc = dStageActor_c::create(profileID, childSettings, &pos, 0, 0);
 			childID = newAc->id;
+		
+			if(profileID == 773)
+				newAc->scale = (Vec){0.0, 0.0, 0.0};
 		}
 	} else {
 		if (respawn)
