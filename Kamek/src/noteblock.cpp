@@ -73,6 +73,7 @@ public:
 
     bool playersGoUp[4];
     bool prevJump[4];
+    bool prevOnBlock[4];
 
     int updatePlayersOnBlock();
     bool playerIsGoUp(int playerID);
@@ -120,16 +121,12 @@ int daEnNoteBlock_c::updatePlayersOnBlock() {
     for (int i = 0; i < 4; i++) {
         this->playersGoUp[i] = false;
         if (dAcPy_c *player = dAcPy_c::findByID(i)) {
-            if(player->pos.x >= pos.x - 10 && player->pos.x <= pos.x + 10) {
+            // Slightly wider X range to catch straddling across adjacent tiles
+            if(player->pos.x >= pos.x - 14 && player->pos.x <= pos.x + 14) {
                 if(player->pos.y >= pos.y - 5 && player->pos.y <= pos.y + 12) {
                     this->playersGoUp[i] = true;
                     anyPlayersGoUp = true;
-
-                    // make sure we're not already jumping prior
-                    if(strcmp(player->states2.getCurrentState()->getName(), "daPlBase_c::StateID_Jump") != 0)
-                    {
-                        wasSteppedOn = false;
-                    }
+                    wasSteppedOn = false;
                 }
             }
         }
@@ -142,6 +139,7 @@ bool daEnNoteBlock_c::playerIsGoUp(int playerID) {
     if(this->playersGoUp[playerID]) {
         return true;
     }
+    return false;
 }
 
 void daEnNoteBlock_c::updateTileState(TileState newState) {
@@ -198,6 +196,7 @@ int daEnNoteBlock_c::onCreate() {
     for(int i = 0; i < 4; i++) {
         this->playersGoUp[i] = false;
         this->prevJump[i] = false;
+        this->prevOnBlock[i] = false;
     }
 
     wasSteppedOn = true;
@@ -275,7 +274,8 @@ int daEnNoteBlock_c::onExecute() {
             //OSReport("Player %d is on block: %d\n", i, playerIsGoUp(i));
             //OSReport("player current state: %s\n", player->states2.getCurrentState()->getName());
             bool curJump = (strcmp(player->states2.getCurrentState()->getName(), "daPlBase_c::StateID_Jump") == 0);
-            if(playerIsGoUp(i) && curJump && player->speed.y > 0.0f && !prevJump[i]) {
+            bool onBlockNow = playerIsGoUp(i);
+            if(onBlockNow && curJump && player->speed.y >= 0.0f && (!prevJump[i] || !prevOnBlock[i])) {
                 updateTileState(TILE_BOUNCE);
                 bounceTimer = 0; // Reset bounce timer
                 bouncePlayer(player, 4.5f);
@@ -288,6 +288,10 @@ int daEnNoteBlock_c::onExecute() {
                 wasSteppedOn = true;
             }
             prevJump[i] = curJump;
+            prevOnBlock[i] = onBlockNow;
+        } else {
+            prevJump[i] = false;
+            prevOnBlock[i] = false;
         }
     }
 
