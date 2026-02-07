@@ -275,7 +275,8 @@ int daEnNoteBlock_c::onExecute() {
             //OSReport("player current state: %s\n", player->states2.getCurrentState()->getName());
             bool curJump = (strcmp(player->states2.getCurrentState()->getName(), "daPlBase_c::StateID_Jump") == 0);
             bool onBlockNow = playerIsGoUp(i);
-            if(onBlockNow && curJump && player->speed.y >= 0.0f && (!prevJump[i] || !prevOnBlock[i])) {
+            // Allow jump to override step-off/other animations if we were on the block last frame
+            if((onBlockNow || prevOnBlock[i]) && curJump && player->speed.y >= 0.0f && (!prevJump[i] || !prevOnBlock[i])) {
                 updateTileState(TILE_BOUNCE);
                 bounceTimer = 0; // Reset bounce timer
                 bouncePlayer(player, 4.5f);
