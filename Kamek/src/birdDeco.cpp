@@ -211,6 +211,13 @@ int dBird_c::onCreate()
     
     this->scale = (Vec){1.0, 1.0, 1.0};
     bindAnimChr_and_setUpdateRate("idle", 1, 0.0, 1.0); 
+
+	float maxFrame = this->chrAnimation._28;
+	if (maxFrame > 1.0f) {
+		int randFrame = GenerateRandomNumber((int)maxFrame);
+		this->chrAnimation.setCurrentFrame((float)randFrame);
+	}
+
     doStateChange(&StateID_Wait);
 
     this->onExecute();
