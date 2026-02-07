@@ -19,6 +19,8 @@ class daLongBlock_c : public daEnBlockMain_c {
 	int hitCount;
 	int timer;
 	bool isGroundPound;
+	bool spawnedThisBump;
+	bool pendingHitState;
 	u32 powerup;
 	u32 itemSettings;
 	u32 coinSettings;
@@ -33,7 +35,8 @@ class daLongBlock_c : public daEnBlockMain_c {
 	void calledWhenUpMoveExecutes();
 	void calledWhenDownMoveExecutes();
 
-	void blockWasHit(bool isDown);
+	void spawnContents(bool isDown);
+	void finishHit();
 
 	mHeapAllocator_c allocator;
 	nw4r::g3d::ResFile resFile;
@@ -109,6 +112,8 @@ int daLongBlock_c::onCreate() {
 
 	this->isHit = false;
 	this->hitCount = 0;
+	this->spawnedThisBump = false;
+	this->pendingHitState = false;
 	
 	this->pos.z = 200.0f;
 	
@@ -173,7 +178,7 @@ int daLongBlock_c::onDraw() {
 }
 
 // AVERT YOUR EYES
-void daLongBlock_c::blockWasHit(bool isDown) {
+void daLongBlock_c::spawnContents(bool isDown) {
 	pos.y = initialY;
 	
 	// Get our powerup from reggie
@@ -193,8 +198,8 @@ void daLongBlock_c::blockWasHit(bool isDown) {
 			bigCoin->speed.x = 2.5f; 
 		}
 		
-		// We are OUT of here
-		doStateChange(&StateID_Hit);
+		// We are OUT of here after the bump finishes
+		pendingHitState = true;
 		return;
 	}
 	
@@ -240,22 +245,39 @@ void daLongBlock_c::blockWasHit(bool isDown) {
 		this->hitCount = 10;
 	
 	if(this->hitCount >= 10)
+		pendingHitState = true;
+}
+
+void daLongBlock_c::finishHit() {
+	if (pendingHitState)
 		doStateChange(&StateID_Hit);
 	else
 		doStateChange(&StateID_Wait);
+
+	pendingHitState = false;
 }
 
 void daLongBlock_c::calledWhenUpMoveExecutes() {
 	if (initialY >= pos.y)
-		blockWasHit(false);
+	{
+		if (!spawnedThisBump)
+			spawnContents(false);
+		finishHit();
+	}
 }
 
 void daLongBlock_c::calledWhenDownMoveExecutes() {
 	if (initialY <= pos.y)
-		blockWasHit(true);
+	{
+		if (!spawnedThisBump)
+			spawnContents(true);
+		finishHit();
+	}
 }
 
 void daLongBlock_c::beginState_Wait() {
+	spawnedThisBump = false;
+	pendingHitState = false;
 }
 
 void daLongBlock_c::endState_Wait() {
@@ -268,10 +290,14 @@ void daLongBlock_c::executeState_Wait() {
 		return;
 
 	if (result == 1) {
+		spawnContents(false);
+		spawnedThisBump = true;
 		doStateChange(&daEnBlockMain_c::StateID_UpMove);
 		anotherFlag = 2;
 		isGroundPound = false;
 	} else {
+		spawnContents(true);
+		spawnedThisBump = true;
 		doStateChange(&daEnBlockMain_c::StateID_DownMove);
 		anotherFlag = 1;
 		isGroundPound = true;
