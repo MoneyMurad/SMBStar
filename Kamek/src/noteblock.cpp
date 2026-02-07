@@ -49,6 +49,9 @@ public:
     };
     TileState currentTileState;
     int bounceTimer; // Timer for bounce state
+    bool bounceAnimActive;
+    int bounceAnimTimer;
+    float bounceBaseY;
     
     // Color variants
     enum Color {
@@ -71,6 +74,7 @@ public:
     bool playerIsGoUp(int playerID);
     void bouncePlayerWhenJumpedOn(void *player);
     void updateTileState(TileState newState);
+    bool applyBounceAnim();
 
     USING_STATES(daEnNoteBlock_c);
     DECLARE_STATE(Spawn);
@@ -180,6 +184,9 @@ int daEnNoteBlock_c::onCreate() {
     originalY = pos.y;
     currentTileState = TILE_SLEEP;
     bounceTimer = 0;
+    bounceAnimActive = false;
+    bounceAnimTimer = 0;
+    bounceBaseY = originalY;
 
     for(int i = 0; i < 4; i++) {
         this->playersGoUp[i] = false;
@@ -241,7 +248,7 @@ int daEnNoteBlock_c::onExecute() {
             updateTileState(TILE_WAKE);
         }
     }
-    else if(!updatePlayersOnBlock() && !wasSteppedOn) {
+    else if(!updatePlayersOnBlock() && !wasSteppedOn && !bounceAnimActive) {
         wasSteppedOn = true;
         if(!(strcmp(currentState->getName(), "daEnNoteBlock_c::StateID_Wait")))
             doStateChange(&StateID_GoUp);
@@ -267,9 +274,15 @@ int daEnNoteBlock_c::onExecute() {
                 bounceTimer = 0; // Reset bounce timer
                 bouncePlayer(player, 4.5f);
                 playerJumped = true;
+                bounceAnimActive = true;
+                bounceAnimTimer = 0;
+                bounceBaseY = originalY;
+                doStateChange(&StateID_Wait);
             }
         }
     }
+
+    applyBounceAnim();
 
     return true;
 }
@@ -350,6 +363,61 @@ void daEnNoteBlock_c::executeState_Spawn()
     }
 }
 void daEnNoteBlock_c::endState_Spawn() {}
+
+bool daEnNoteBlock_c::applyBounceAnim() {
+    if (!bounceAnimActive)
+        return false;
+
+    struct BounceKey {
+        int frame;
+        float y;
+        float scale;
+    };
+
+    static const BounceKey keys[] = {
+        {0, 0.0f, 1.0f},
+        {4, -3.0f, 1.0f},
+        {10, 6.0f, 1.1f},
+        {18, -2.0f, 1.0f},
+        {23, 1.0f, 1.0f},
+        {28, -0.5f, 1.0f},
+        {30, 0.0f, 1.0f}
+    };
+
+    const int keyCount = sizeof(keys) / sizeof(keys[0]);
+    const int lastFrame = keys[keyCount - 1].frame;
+
+    if (bounceAnimTimer >= lastFrame) {
+        this->pos.y = bounceBaseY + keys[keyCount - 1].y;
+        float s = keys[keyCount - 1].scale;
+        this->scale = (Vec){s, s, s};
+        bounceAnimActive = false;
+        bounceAnimTimer = 0;
+        playerJumped = false;
+        doStateChange(&StateID_Wait);
+        return true;
+    }
+
+    const BounceKey *k0 = &keys[0];
+    const BounceKey *k1 = &keys[1];
+    for (int i = 1; i < keyCount; i++) {
+        if (bounceAnimTimer <= keys[i].frame) {
+            k0 = &keys[i - 1];
+            k1 = &keys[i];
+            break;
+        }
+    }
+
+    float span = (float)(k1->frame - k0->frame);
+    float t = span > 0.0f ? (bounceAnimTimer - k0->frame) / span : 0.0f;
+    float y = k0->y + (k1->y - k0->y) * t;
+    float s = k0->scale + (k1->scale - k0->scale) * t;
+
+    this->pos.y = bounceBaseY + y;
+    this->scale = (Vec){s, s, s};
+    bounceAnimTimer++;
+    return true;
+}
 
 float daEnNoteBlock_c::nearestPlayerDistance() {
 	float bestSoFar = 10000.0f;
