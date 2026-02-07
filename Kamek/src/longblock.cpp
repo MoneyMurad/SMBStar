@@ -7,7 +7,6 @@
 const char *LongBlockFileList[] = {"obj_block_long", 0};
 
 class daLongBlock_c : public daEnBlockMain_c {
-
 	Physics::Info physicsInfo;
 
 	int onCreate();
@@ -21,6 +20,10 @@ class daLongBlock_c : public daEnBlockMain_c {
 	bool isGroundPound;
 	bool spawnedThisBump;
 	bool pendingHitState;
+	bool pendingItemSpawn;
+	u32 pendingItemSettings;
+	Vec pendingItemPos;
+	int pendingItemSoundId;
 	u32 powerup;
 	u32 itemSettings;
 	u32 coinSettings;
@@ -36,6 +39,7 @@ class daLongBlock_c : public daEnBlockMain_c {
 	void calledWhenDownMoveExecutes();
 
 	void spawnContents(bool isDown);
+	void spawnPendingItem();
 	void finishHit();
 
 	mHeapAllocator_c allocator;
@@ -114,6 +118,10 @@ int daLongBlock_c::onCreate() {
 	this->hitCount = 0;
 	this->spawnedThisBump = false;
 	this->pendingHitState = false;
+	this->pendingItemSpawn = false;
+	this->pendingItemSettings = 0;
+	this->pendingItemPos = (Vec){0.0f, 0.0f, 0.0f};
+	this->pendingItemSoundId = 0;
 	
 	this->pos.z = 200.0f;
 	
@@ -214,11 +222,12 @@ void daLongBlock_c::spawnContents(bool isDown) {
 	nw4r::snd::SoundHandle handle;
 	PlaySoundWithFunctionB4(SoundRelatedClass, &handle, SE_OBJ_GET_COIN, 1);
 	
+	pendingItemSoundId = 0;
 	if((powerup != 0x2 && powerup != 0x15) || p == 0 || p == 3) 
-		PlaySoundWithFunctionB4(SoundRelatedClass, &handle, SE_OBJ_ITEM_APPEAR, 1); //Item sound
+		pendingItemSoundId = SE_OBJ_ITEM_APPEAR; //Item sound
 
 	if(powerup == 0x15 && p != 0) 
-		PlaySoundWithFunctionB4(SoundRelatedClass, &handle, SE_OBJ_ITEM_PRPL_APPEAR, 1); //Propeller sound
+		pendingItemSoundId = SE_OBJ_ITEM_PRPL_APPEAR; //Propeller sound
 	
 	/*	Coin/powerup positions and settings logic	*/
 	this->itemSettings = 0 | (powerup << 0) | (((isDown) ? 3 : 2) << 18) | (4 << 9) | (2 << 10) | (this->playerID + 8 << 16);
@@ -226,17 +235,20 @@ void daLongBlock_c::spawnContents(bool isDown) {
 		
 	this->coinL = (Vec) {this->pos.x - 16, this->pos.y + ((isDown) ? 1 : -2), this->pos.z};
 	this->coinR = (Vec) {this->pos.x + 16, this->pos.y + ((isDown) ? 1 : -2), this->pos.z};
-	//Vec itemPos = (Vec){this->pos.x, ((isDown) ? this->pos.y - 20 : this->pos.y - 5), this->pos.z};
+	Vec itemPos = (Vec){this->pos.x, this->pos.y + ((isDown) ? 1 : -2), this->pos.z};
 	
 	/*	Create our actors	*/
-	item = dStageActor_c::create(EN_ITEM, itemSettings, &this->pos, 0, 0);
-	dStageActor_c *leftCoin = dStageActor_c::create(EN_ITEM, coinSettings, &coinL, 0, 0);
-	dStageActor_c *rightCoin = dStageActor_c::create(EN_ITEM, coinSettings, &coinR, 0, 0); 
-	
-	//if(powerup != 0x15 || p == 0 || p == 3) 
-	//{
+	if (powerup == 0x2) {
+		item = dStageActor_c::create(EN_ITEM, itemSettings, &itemPos, 0, 0);
 		item->pos.z = 100.0f;
-	//}
+	} else {
+		pendingItemSpawn = true;
+		pendingItemSettings = itemSettings;
+		pendingItemPos = itemPos;
+	}
+	dStageActor_c::create(EN_ITEM, coinSettings, &coinL, 0, 0);
+	dStageActor_c::create(EN_ITEM, coinSettings, &coinR, 0, 0);
+	// non-coin items are spawned after the bump ends
 	
 	// 10 coin
 	if(powerup == 0x2 && ((this->settings >> 28 & 0xF) == 10))
@@ -257,11 +269,28 @@ void daLongBlock_c::finishHit() {
 	pendingHitState = false;
 }
 
+void daLongBlock_c::spawnPendingItem() {
+	if (!pendingItemSpawn)
+		return;
+
+	item = dStageActor_c::create(EN_ITEM, pendingItemSettings, &pendingItemPos, 0, 0);
+	item->pos.z = 100.0f;
+
+	if (pendingItemSoundId != 0) {
+		nw4r::snd::SoundHandle handle;
+		PlaySoundWithFunctionB4(SoundRelatedClass, &handle, pendingItemSoundId, 1);
+	}
+
+	pendingItemSpawn = false;
+	pendingItemSettings = 0;
+	pendingItemSoundId = 0;
+}
+
 void daLongBlock_c::calledWhenUpMoveExecutes() {
 	if (initialY >= pos.y)
 	{
-		if (!spawnedThisBump)
-			spawnContents(false);
+		if (spawnedThisBump)
+			spawnPendingItem();
 		finishHit();
 	}
 }
@@ -269,8 +298,8 @@ void daLongBlock_c::calledWhenUpMoveExecutes() {
 void daLongBlock_c::calledWhenDownMoveExecutes() {
 	if (initialY <= pos.y)
 	{
-		if (!spawnedThisBump)
-			spawnContents(true);
+		if (spawnedThisBump)
+			spawnPendingItem();
 		finishHit();
 	}
 }
@@ -278,6 +307,9 @@ void daLongBlock_c::calledWhenDownMoveExecutes() {
 void daLongBlock_c::beginState_Wait() {
 	spawnedThisBump = false;
 	pendingHitState = false;
+	pendingItemSpawn = false;
+	pendingItemSettings = 0;
+	pendingItemSoundId = 0;
 }
 
 void daLongBlock_c::endState_Wait() {
