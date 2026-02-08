@@ -434,7 +434,7 @@ void dGoombrat_c::beginState_Walk()
 /* 		Walk 		*/
 void dGoombrat_c::executeState_Walk() 
 {
-	bool turn = (calculateTileCollisions() || (!willWalkOntoSuitableGround() && collMgr.isOnTopOfTile()));
+	bool turn = (calculateTileCollisions() || (!willWalkOntoSuitableGround(2.5f) && collMgr.isOnTopOfTile()));
 	if(turn) {
 		texState = 1;
 		doStateChange(&StateID_Turn);

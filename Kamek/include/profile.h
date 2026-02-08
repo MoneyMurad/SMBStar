@@ -24,7 +24,8 @@ struct SpriteData
 class Profile
 {
 public:
-    Profile(dActor_c* (*buildFunc)(), u32 spriteId, const SpriteData* spriteData, u16 executeOrderProfileId, u16 drawOrderProfileId, const char* name, const char** files=NULL, u32 flags = 0b0000110100);
+    Profile(dActor_c* (*buildFunc)(), u32 spriteId, const SpriteData* spriteData, u16 executeOrderProfileId, u16 drawOrderProfileId, const char* name, const char** files, u32 flags);
+    Profile(dActor_c* (*buildFunc)(), u32 spriteId, const SpriteData* spriteData, u16 executeOrderProfileId, u16 drawOrderProfileId, const char* name, const char** files);
 
     dActor_c* (*buildFunc)();
     u16 executeOrderProfileId;

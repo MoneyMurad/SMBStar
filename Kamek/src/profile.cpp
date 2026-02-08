@@ -66,30 +66,53 @@ const char* GetProfileName(u32 profileId)
 
 /* CUSTOM PROFILE CTOR */
 
+namespace {
+	const u32 kProfileDefaultFlags = 0x34;
+
+	void InitProfile(
+		Profile *self,
+		dActor_c* (*buildFunc)(),
+		u32 id,
+		const SpriteData* spriteData,
+		u16 executeOrderProfileId,
+		u16 drawOrderProfileId,
+		const char* name,
+		const char** files,
+		u32 flags
+	) {
+		self->buildFunc = buildFunc;
+		self->executeOrderProfileId = executeOrderProfileId;
+		self->drawOrderProfileId = drawOrderProfileId;
+		self->flags = flags;
+
+		u32 profileId;
+		if (spriteData) {
+			sprites[id] = *spriteData;
+			if (id < 483) {
+				spriteFiles[id] = files;
+			} else {
+				customSpriteFiles[id - 483] = files;
+			}
+			profileId = spriteData->profileId;
+		} else {
+			profileId = id;
+		}
+		
+		profiles[profileId] = self;
+		if (profileId < ORIGINAL_PROFILES) {
+			profileNames[profileId] = name;
+		} else {
+			customProfileNames[profileId - ORIGINAL_PROFILES] = name;
+		}
+	}
+}
+
 Profile::Profile(dActor_c* (*buildFunc)(), u32 id, const SpriteData* spriteData, u16 executeOrderProfileId, u16 drawOrderProfileId, const char* name, const char** files, u32 flags)
 {
-    this->buildFunc = buildFunc;
-    this->executeOrderProfileId = executeOrderProfileId;
-    this->drawOrderProfileId = drawOrderProfileId;
-	this->flags = flags;
+	InitProfile(this, buildFunc, id, spriteData, executeOrderProfileId, drawOrderProfileId, name, files, flags);
+}
 
-	u32 profileId;
-	if (spriteData) {
-		sprites[id] = *spriteData;
-		if (id < 483) {
-			spriteFiles[id] = files;
-		} else {
-			customSpriteFiles[id - 483] = files;
-		}
-		profileId = spriteData->profileId;
-	} else {
-		profileId = id;
-	}
-	
-	profiles[profileId] = this;
-	if (profileId < ORIGINAL_PROFILES) {
-		profileNames[profileId] = name;
-	} else {
-		customProfileNames[profileId - ORIGINAL_PROFILES] = name;
-	}
+Profile::Profile(dActor_c* (*buildFunc)(), u32 id, const SpriteData* spriteData, u16 executeOrderProfileId, u16 drawOrderProfileId, const char* name, const char** files)
+{
+	InitProfile(this, buildFunc, id, spriteData, executeOrderProfileId, drawOrderProfileId, name, files, kProfileDefaultFlags);
 }

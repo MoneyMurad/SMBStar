@@ -2,13 +2,9 @@
 #include <game.h>
 #include <sfx.h>
 #include "msgbox.h"
-#include "dialoge.h"
 #include <g3dhax.h>
 
 // Replaces: EN_LIFT_ROTATION_HALF (Sprite 107; Profile ID 481 @ 80AF96F8)
-
-int messageIndex = 0;
-int gid = 0;
 
 dMsgBoxManager_c *dMsgBoxManager_c::instance = 0;
 dMsgBoxManager_c *dMsgBoxManager_c::build() {
@@ -119,7 +115,6 @@ void dMsgBoxManager_c::showMessage(int id, bool canCancel, int delay) {
 	header_s *data = (header_s*)msgDataLoader.buffer;
 
 	const wchar_t *title = 0, *msg = 0;
-	gid = id;
 
 	for (int i = 0; i < data->count; i++) {
 		if (data->entry[i].id == id) {
@@ -134,16 +129,14 @@ void dMsgBoxManager_c::showMessage(int id, bool canCancel, int delay) {
 		//return;
 	}
 
-	//PLEASE DONT LOOK
-
-	layout.findTextBoxByName("T_title")->SetString(L"");
-	layout.findTextBoxByName("T_msg")->SetString(messages[messageIndex]);
+	layout.findTextBoxByName("T_title")->SetString(title ? title : L"");
+	layout.findTextBoxByName("T_msg")->SetString(msg ? msg : L"");
 
 	this->canCancel = canCancel;
 	this->delay = delay;
 	layout.findPictureByName("button")->SetVisible(canCancel);
 
-	if(messageIndex == 0)
+	if (!visible)
 		state.setState(&StateID_BoxAppearWait);
 }
 
@@ -177,14 +170,9 @@ void dMsgBoxManager_c::executeState_ShownWait() {
 	if (canCancel) {
 		int nowPressed = Remocon_GetPressed(GetActiveRemocon());
 
-		if (nowPressed & WPAD_TWO)
-		{
-			messageIndex++;
-
-			if (messages[messageIndex] != NULL)
-				showMessage(settings);
-			else
-				state.setState(&StateID_BoxDisappearWait);
+		if (nowPressed & WPAD_TWO) {
+			state.setState(&StateID_BoxDisappearWait);
+			return;
 		}
 	}
 
@@ -201,8 +189,6 @@ void dMsgBoxManager_c::endState_ShownWait() { }
 CREATE_STATE(dMsgBoxManager_c, BoxDisappearWait);
 
 void dMsgBoxManager_c::beginState_BoxDisappearWait() {
-	messageIndex = 0;
-	
 	layout.enableNonLoopAnim(ANIM_BOX_DISAPPEAR);
 
 	nw4r::snd::SoundHandle handle;
