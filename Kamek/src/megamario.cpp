@@ -115,6 +115,29 @@ Profile MegaMarioProfile(&dMegaMario_c::build, SpriteId::megamario, &MegaMarioDa
 
 extern "C" void *ShakeScreen(void *, unsigned int, unsigned int, unsigned int, unsigned int);
 extern "C" void* ScreenPositionClass;
+extern int MaxCoins;
+
+static inline void awardCoins(int playerIndex, int amount) {
+	if (playerIndex < 0 || playerIndex > 3)
+		return;
+
+	Player_Coins[playerIndex] += amount;
+
+	nw4r::snd::SoundHandle handle;
+	if (Player_Coins[playerIndex] > MaxCoins) {
+		PlaySoundWithFunctionB4(SoundRelatedClass, &handle, SE_SYS_100COIN_ONE_UP, 1);
+
+		if (Player_Lives[playerIndex] >= 99)
+			Player_Lives[playerIndex] = 99;
+		else
+			Player_Lives[playerIndex] += 1;
+
+		int difference = Player_Coins[playerIndex] - MaxCoins;
+		Player_Coins[playerIndex] = (difference - 1);
+	}
+
+	PlaySoundWithFunctionB4(SoundRelatedClass, &handle, SE_OBJ_GET_COIN, 1);
+}
 
 dActor_c* dMegaMario_c::build() {
 	void *buf = AllocFromGameHeap1(sizeof(dMegaMario_c));
@@ -539,6 +562,43 @@ void dMegaMario_c::collectNearbyPickups()
 		pickup->playerCollision(ap, &daPlayer->aPhysics);
 
 		ap = ap->listPrev;
+	}
+
+	int playerIndex = Player_ID[daPlayer->which_player];
+
+	static const u16 manualCoinNames[] = {
+		EN_COIN, EN_COIN_JUGEM, EN_COIN_JUMP, EN_COIN_FLOOR,
+		EN_COIN_VOLT, EN_COIN_WIND, EN_COIN_WATER, EN_COIN_ANGLE
+	};
+
+	for (int i = 0; i < (int)(sizeof(manualCoinNames) / sizeof(manualCoinNames[0])); i++) {
+		fBase_c *fb = 0;
+		while ((fb = fBase_c::search((Actors)manualCoinNames[i], fb))) {
+			dStageActor_c *ac = (dStageActor_c*)fb;
+			if (!ac || ac == this)
+				continue;
+
+			if (ac->aPhysics.isLinkedIntoList)
+				continue;
+
+			float otherHalfX = (ac->aPhysics.info.xDistToEdge != 0.0f) ? ac->aPhysics.info.xDistToEdge : 8.0f;
+			float otherHalfY = (ac->aPhysics.info.yDistToEdge != 0.0f) ? ac->aPhysics.info.yDistToEdge : 8.0f;
+			otherHalfX *= ac->scale.x;
+			otherHalfY *= ac->scale.y;
+
+			float otherLeft = ac->pos.x - otherHalfX;
+			float otherRight = ac->pos.x + otherHalfX;
+			float otherTop = ac->pos.y + otherHalfY;
+			float otherBottom = ac->pos.y - otherHalfY;
+
+			if (megaRight < otherLeft || megaLeft > otherRight)
+				continue;
+			if (megaTop < otherBottom || megaBottom > otherTop)
+				continue;
+
+			awardCoins(playerIndex, 1);
+			ac->Delete(1);
+		}
 	}
 }
 
