@@ -616,6 +616,7 @@ void dMegaMario_c::collectNearbyPickups()
 				continue;
 
 			awardCoins(playerIndex, 1);
+			SpawnEffect("Wm_ob_coinkira", 0, &ac->pos, &(S16Vec){0,0,0}, &(Vec){1.0, 1.0, 1.0});
 			ac->Delete(1);
 		}
 	}
