@@ -676,6 +676,9 @@ void dMegaMario_c::beginState_SpawnScale() {
 	scale = (Vec){0.4f, 0.4f, 0.4f};
 	speed.x = speed.y = 0.0f;
 	max_speed.x = max_speed.y = 0.0f;
+
+	static nw4r::snd::StrmSoundHandle megaPowerupHandle;
+	PlaySoundWithFunctionB4(SoundRelatedClass, &megaPowerupHandle, SFX_MEGA_POWERUP, 1);
 }
 
 void dMegaMario_c::executeState_SpawnScale() {
@@ -716,6 +719,9 @@ void dMegaMario_c::beginState_MegaOutro() {
 
 	speed.x = speed.y = 0.0f;
 	max_speed.x = max_speed.y = 0.0f;
+
+	static nw4r::snd::StrmSoundHandle megaPowerdownHandle;
+	PlaySoundWithFunctionB4(SoundRelatedClass, &megaPowerdownHandle, SFX_MEGA_POWERDOWN, 1);
 }
 
 void dMegaMario_c::executeState_MegaOutro() {
