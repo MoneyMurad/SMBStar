@@ -57,7 +57,8 @@ class dMegaMario_c : public daBoss {
 
 	Vec originalPos;
 
-    bool calculateTileCollisions();
+	bool calculateTileCollisions();
+	void collectNearbyPickups();
 
 	void texPat_bindAnimChr_and_setUpdateRate(const char* name);
     void updateModelMatrices();
@@ -97,6 +98,15 @@ CREATE_STATE(dMegaMario_c, Walk);
 CREATE_STATE(dMegaMario_c, SpawnScale);
 CREATE_STATE(dMegaMario_c, MegaOutro);
 
+static inline bool isMegaPickup(u16 name) {
+	return (
+		name == EN_COIN || name == EN_EATCOIN || name == AC_BLOCK_COIN || name == EN_COIN_JUGEM || name == EN_COIN_ANGLE ||
+		name == EN_COIN_JUMP || name == EN_COIN_FLOOR || name == EN_COIN_VOLT || name == EN_COIN_WIND ||
+		name == EN_BLUE_COIN || name == EN_COIN_WATER || name == EN_REDCOIN || name == EN_GREENCOIN ||
+		name == EN_JUMPDAI || name == EN_ITEM || name == EN_STAR_COIN
+	);
+}
+
 // Add state to the player
 CREATE_STATE(daPlBase_c, MegaMario);
 
@@ -135,11 +145,12 @@ void dMegaMario_c::spriteCollision(ActivePhysics *apThis, ActivePhysics *apOther
 
 	if(name == mega || name == bird) return;
 
-	if (name == EN_COIN || name == EN_EATCOIN || name == AC_BLOCK_COIN || name == EN_COIN_JUGEM || name == EN_COIN_ANGLE
-		|| name == EN_COIN_JUMP || name == EN_COIN_FLOOR || name == EN_COIN_VOLT || name == EN_COIN_WIND 
-		|| name == EN_BLUE_COIN || name == EN_COIN_WATER || name == EN_REDCOIN || name == EN_GREENCOIN
-		|| name == EN_JUMPDAI || name == EN_ITEM || name == EN_STAR_COIN) {
-			((dActor_c*)apOther->owner)->pos = daPlayer->pos;
+	if (isMegaPickup(name)) {
+			dEn_c* pickup = (dEn_c*)apOther->owner;
+			if (pickup && daPlayer) {
+				pickup->playerCollision(apOther, &daPlayer->aPhysics);
+			}
+			return;
 		}
 
 	// Get our enemy
@@ -324,7 +335,10 @@ int dMegaMario_c::onCreate()
 	// Register sensors
 	collMgr.init(this, &belowSensor, &aboveSensor, &adjacentSensor);
 
-	daPlayer = dAcPy_c::findByID(0); 
+	daPlayer = dAcPy_c::findByID(0);
+	if (daPlayer) {
+		this->which_player = daPlayer->which_player;
+	}
 	//cmgr_returnValue = collMgr.isOnTopOfTile();
 	
 	this->finishingUp = false;
@@ -426,6 +440,7 @@ int dMegaMario_c::onExecute() {
 		this->patAnimation.setFrameForEntry(0, 0);
 
 	// Above collision is handled in calculateTileCollisions after movement updates.
+	collectNearbyPickups();
 
 	return true;
 }
@@ -479,6 +494,52 @@ bool dMegaMario_c::calculateTileCollisions()
 		return true;
 	}
 	return false;
+}
+
+void dMegaMario_c::collectNearbyPickups()
+{
+	if (!daPlayer)
+		return;
+
+	const ActivePhysics::Info &megaInfo = this->aPhysics.info;
+	float megaLeft = this->pos.x + megaInfo.xDistToCenter - megaInfo.xDistToEdge;
+	float megaRight = this->pos.x + megaInfo.xDistToCenter + megaInfo.xDistToEdge;
+	float megaTop = this->pos.y + megaInfo.yDistToCenter + megaInfo.yDistToEdge;
+	float megaBottom = this->pos.y + megaInfo.yDistToCenter - megaInfo.yDistToEdge;
+
+	ActivePhysics *ap = ActivePhysics::globalListHead;
+	while (ap) {
+		dStageActor_c *ac = ap->owner;
+		if (!ac || ac == this) {
+			ap = ap->listPrev;
+			continue;
+		}
+
+		if (!isMegaPickup(ac->name)) {
+			ap = ap->listPrev;
+			continue;
+		}
+
+		const ActivePhysics::Info &info = ap->info;
+		float otherLeft = ac->pos.x + info.xDistToCenter - info.xDistToEdge;
+		float otherRight = ac->pos.x + info.xDistToCenter + info.xDistToEdge;
+		float otherTop = ac->pos.y + info.yDistToCenter + info.yDistToEdge;
+		float otherBottom = ac->pos.y + info.yDistToCenter - info.yDistToEdge;
+
+		if (megaRight < otherLeft || megaLeft > otherRight) {
+			ap = ap->listPrev;
+			continue;
+		}
+		if (megaTop < otherBottom || megaBottom > otherTop) {
+			ap = ap->listPrev;
+			continue;
+		}
+
+		dEn_c *pickup = (dEn_c*)ac;
+		pickup->playerCollision(ap, &daPlayer->aPhysics);
+
+		ap = ap->listPrev;
+	}
 }
 
 /* 		Idle 		*/
