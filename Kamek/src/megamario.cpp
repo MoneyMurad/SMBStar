@@ -247,6 +247,14 @@ void dMegaMario_c::texPat_bindAnimChr_and_setUpdateRate(const char* name) {
 	this->bodyModel.bindAnim(&this->patAnimation);
 }
 
+void dMegaMario_c::setdaPlayer(dAcPy_c *player) {
+	if (!player)
+		return;
+
+	daPlayer = player;
+	this->which_player = player->which_player;
+}
+
 int dMegaMario_c::onCreate()
 {
 	this->texState = 2;
@@ -379,6 +387,12 @@ int dMegaMario_c::onDraw()
 }
 
 int dMegaMario_c::onExecute() {
+	dAcPy_c *player = (dAcPy_c*)GetSpecificPlayerActor(this->which_player);
+	if (player && player != daPlayer)
+		setdaPlayer(player);
+	if (!daPlayer)
+		return true;
+
 	acState.execute();
 	updateModelMatrices();
 	bodyModel._vf1C();

@@ -78,7 +78,8 @@ void dMegaMushroom_c::playerCollision(ActivePhysics *apThis, ActivePhysics *apOt
 	dStageActor_c* megaMario = (dStageActor_c*)FindActorByType(mega, 0);
 	
     if(megaMario) {
-		megaMario->pos = ((dEn_c*)apOther->owner)->pos;
+		megaMario->which_player = apOther->owner->which_player;
+		megaMario->pos = apOther->owner->pos;
 		megaMario->scale = (Vec){0.2f, 0.2f, 0.2f};
 		this->Delete(0);
     }
