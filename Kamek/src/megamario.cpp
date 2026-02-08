@@ -424,8 +424,11 @@ int dMegaMario_c::onExecute() {
 	if (!this->wasOnGround && onGround) {
 		canBreakThisLanding = true;
 
-		if(this->weJumped)
+		if(this->weJumped) {
 			ShakeScreen(ScreenPositionClass, 0, 1, 0, 0); // add screenshake effect
+			static nw4r::snd::StrmSoundHandle megaStompHandle;
+			PlaySoundWithFunctionB4(SoundRelatedClass, &megaStompHandle, SFX_MEGA_STOMP, 1);
+		}
 
 		this->weJumped = false;
 	}
@@ -863,6 +866,9 @@ void daPlBase_c::executeState_MegaMario() {
 		megaMario->max_speed.y = 8.5f;
 		megaMario->texState = 0; // set frame to jump
 		jumpCutApplied = false;
+
+		static nw4r::snd::StrmSoundHandle megaJumpHandle;
+		PlaySoundWithFunctionB4(SoundRelatedClass, &megaJumpHandle, SFX_MEGA_JUMP, 1);
 	}
 
 	if(!megaMario->collMgr.isOnTopOfTile())

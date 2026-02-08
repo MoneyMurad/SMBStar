@@ -9,7 +9,9 @@ const char* SFXNameList [] = {
 	"bird_chirp_1",
 	"bird_chirp_2",
 	"bird_chirp_3",
-	"bird_fly",
+	"bird_fly",			// 2003
+	"mega_jump",		// 2004
+	"mega_stomp",		// 2005
 	NULL
 };
 
