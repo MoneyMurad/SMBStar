@@ -11,7 +11,7 @@
 
 const char* MegaMarioArc[] = {"obj_mega", NULL};
 
-#define MEGA_TOTAL_TIME   (20 * 60)
+#define MEGA_TOTAL_TIME   (17 * 60)
 #define MEGA_FLASH_TIME   (3 * 60)
 
 // apDebug.cpp debug drawer (sensor hitboxes)
@@ -286,11 +286,11 @@ int dMegaMario_c::onCreate()
 	
 	// Dist from center
 	HitMeBaby.xDistToCenter = 0.0;
-	HitMeBaby.yDistToCenter = 55.0;
+	HitMeBaby.yDistToCenter = 45.0f;
 	
 	// Size
 	HitMeBaby.xDistToEdge = 24.0;
-	HitMeBaby.yDistToEdge = 60.0;
+	HitMeBaby.yDistToEdge = 50.0f;
 	
 	HitMeBaby.category1 = 0x3;
 	HitMeBaby.category2 = 0x0;
@@ -335,7 +335,8 @@ int dMegaMario_c::onCreate()
 	belowSensor.lineB =  size << 12;
 	belowSensor.distanceFromCenter = -15;
 
-	int halfHeight = 60; // match ActivePhysics yDistToEdge
+	float halfHeight = 50.0f; // match ActivePhysics yDistToEdge
+	float hitboxTop = HitMeBaby.yDistToCenter + HitMeBaby.yDistToEdge;
 
 	// SIDE SENSOR
 	adjacentSensor.flags =
@@ -361,7 +362,8 @@ int dMegaMario_c::onCreate()
 	
 	aboveSensor.lineA = -size << 12;
 	aboveSensor.lineB =  size << 12;
-	aboveSensor.distanceFromCenter = int(ceil(halfHeight * 1.75)) << 12;
+	// Keep above sensor aligned to the hitbox top to avoid clipping into solid tiles.
+	aboveSensor.distanceFromCenter = int(ceil(hitboxTop)) << 12;
 
 	// Register sensors
 	collMgr.init(this, &belowSensor, &aboveSensor, &adjacentSensor);
