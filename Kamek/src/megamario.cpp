@@ -13,6 +13,8 @@ const char* MegaMarioArc[] = {"obj_mega", NULL};
 
 #define MEGA_TOTAL_TIME   (17 * 60)
 #define MEGA_FLASH_TIME   (3 * 60)
+// -5500 is the standard "behind layer 2" depth in this codebase.
+static const float kMegaDrawZOffset = -5500.0f;
 
 // apDebug.cpp debug drawer (sensor hitboxes)
 extern int APDebugDraw();
@@ -226,7 +228,7 @@ bool dMegaMario_c::collisionCat5_Mario(ActivePhysics *apThis, ActivePhysics *apO
 }
 
 void dMegaMario_c::updateModelMatrices() {
-	matrix.translation(pos.x, pos.y, pos.z);
+	matrix.translation(pos.x, pos.y, pos.z + kMegaDrawZOffset);
 	matrix.applyRotationYXZ(&rot.x, &rot.y, &rot.z);
 
 	bodyModel.setDrawMatrix(matrix);
