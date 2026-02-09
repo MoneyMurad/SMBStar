@@ -2699,6 +2699,8 @@
   </sprite>
   
   <sprite id="491" name="Triple ? Block" notes="Long block that gives two coins along with a powerup. From NSMB2. &lt;font color=&quot;orange&quot;&gt;For use with Project Star&lt;/font&gt;">
+    <checkbox nybble="9.3" title="Invisible" comment="Invisible triple block akin to its single-block brother."/>
+
 	 <list nybble="5" title="Contains">
       <entry value="0">Fire Flower</entry>
 	  <entry value="1">Star</entry>
