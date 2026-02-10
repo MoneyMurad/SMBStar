@@ -30,6 +30,8 @@ class daLongBlock_c : public daEnBlockMain_c {
 	u32 coinSettings;
 	dStageActor_c *item;
 	dStageActor_c *bigCoin;
+
+	float ogPos;
 	
 	m3d::anmTexSrt_c body;
 
@@ -93,6 +95,8 @@ int daLongBlock_c::onCreate() {
 	SetupTextures_MapObj(&usedModel, 0);
 
 	allocator.unlink();
+
+	this->ogPos = this->pos.y;
 
 	blockInit(pos.y);
 
@@ -265,6 +269,8 @@ void daLongBlock_c::spawnContents(bool isDown) {
 }
 
 void daLongBlock_c::finishHit() {
+	this->pos.y = this->ogPos;
+	
 	if (pendingHitState)
 		doStateChange(&StateID_Hit);
 	else
@@ -326,7 +332,7 @@ void daLongBlock_c::executeState_Wait() {
 		return;
 
 	this->isInvisible = false; // make it so we can see the block after hitting it
-	
+
 	if (result == 1) {
 		spawnContents(false);
 		spawnedThisBump = true;
