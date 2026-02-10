@@ -248,8 +248,11 @@ void dEnEventCoin_c::beginState_Collected()
 }
 void dEnEventCoin_c::executeState_Collected() 
 {
-	if(!this->chrAnimation.isAnimationDone())
+	if(this->timer <= 30)
+	{	
+		this->timer += 1;
 		return;
+	}
 
 	this->stopRendering = true;
 
