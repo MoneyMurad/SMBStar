@@ -11,12 +11,17 @@
 
 const char* MegaMarioArc[] = {"obj_mega", NULL};
 
-#define MEGA_TOTAL_TIME   (20 * 60)
+#define MEGA_TOTAL_TIME   (17 * 60)
 #define MEGA_FLASH_TIME   (3 * 60)
+
+extern void StopSoundRelated(int);
 
 // apDebug.cpp debug drawer (sensor hitboxes)
 extern int APDebugDraw();
-	
+
+extern "C" void StartStarBGM(void);
+extern "C" void StopStarBGM(void);
+
 class dMegaMario_c : public daBoss {
     int onCreate();
     int onExecute();
@@ -402,7 +407,7 @@ int dMegaMario_c::onExecute() {
 		daPlayer->states2.setState(&daPlBase_c::StateID_MegaMario);
 		doStateChange(&StateID_SpawnScale);
 	}
-	
+
 	if(this->scale.x != 1.5f) return;
 	APDebugDraw();
 
@@ -670,6 +675,8 @@ void dMegaMario_c::executeState_Walk()
 void dMegaMario_c::endState_Walk() 
 {}
 
+nw4r::snd::SndAudioMgr* mgr = nw4r::snd::SndAudioMgr::instance;
+
 /* 		Spawn Anim 		*/
 void dMegaMario_c::beginState_SpawnScale() {
 	timer = 0;
@@ -680,6 +687,8 @@ void dMegaMario_c::beginState_SpawnScale() {
 	static nw4r::snd::StrmSoundHandle megaPowerupHandle;
 	PlaySoundWithFunctionB4(SoundRelatedClass, &megaPowerupHandle, SFX_MEGA_POWERUP, 1);
 }
+
+static nw4r::snd::StrmSoundHandle s_handle;
 
 void dMegaMario_c::executeState_SpawnScale() {
 	timer++;
@@ -705,8 +714,14 @@ void dMegaMario_c::executeState_SpawnScale() {
 		scale = (Vec){1.49f, 1.49f, 1.49f};
 	}
 	else if (timer == 42) {
+		nw4r::snd::SndAudioMgr::instance->stopAllBgm(0xf);
+
+		int sID;
+		hijackMusicWithSongName("BGM_MEGA", -1, false, 2, 1, &sID);
+		PlaySoundWithFunctionB4(SoundRelatedClass, &s_handle, sID, 1);
+	
 		scale = (Vec){1.5f, 1.5f, 1.5f};
-		doStateChange(&StateID_Walk); // transition to normal behavior
+		doStateChange(&StateID_Walk);
 	}
 }
 
@@ -720,6 +735,10 @@ void dMegaMario_c::beginState_MegaOutro() {
 	speed.x = speed.y = 0.0f;
 	max_speed.x = max_speed.y = 0.0f;
 
+	s_handle.Stop(30);
+
+	StartBGMMusic();
+	
 	static nw4r::snd::StrmSoundHandle megaPowerdownHandle;
 	PlaySoundWithFunctionB4(SoundRelatedClass, &megaPowerdownHandle, SFX_MEGA_POWERDOWN, 1);
 }
@@ -749,7 +768,7 @@ void dMegaMario_c::executeState_MegaOutro() {
 	{
 		this->pos = this->originalPos;
 		//SpawnEffect("Wm_ob_starcoinget", 0, &daPlayer->pos, &(S16Vec){0,0,0}, &(Vec){1.0, 1.0, 1.0});
-		
+
 		daPlayer->speed.x = 0.0f;
 		daPlayer->max_speed.x = 0.0f;
 		daPlayer->states2.setState(&dPlayer::StateID_Walk);

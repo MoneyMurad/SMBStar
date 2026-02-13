@@ -89,6 +89,8 @@ modules:
   - cameraScrollLimiter.yaml
   - processed/quickhax.yaml
   # - processed/screenShakeHijack.yaml
+  - processed/snakeblock.yaml
+  # - processed/newSongInterject.yaml
   
   # Actors
   - processed/powerstar.yaml
