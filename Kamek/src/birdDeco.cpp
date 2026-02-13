@@ -111,12 +111,14 @@ bool dBird_c::collisionCatA_PenguinMario(ActivePhysics *apThis, ActivePhysics *a
 	return true;
 }
 bool dBird_c::collisionCat1_Fireball_E_Explosion(ActivePhysics *apThis, ActivePhysics *apOther) {
+	markPlayerInRange(apThis);
 	return true;
 }
 bool dBird_c::collisionCat2_IceBall_15_YoshiIce(ActivePhysics *apThis, ActivePhysics *apOther) {
 	return true;
 }
 bool dBird_c::collisionCat9_RollingObject(ActivePhysics *apThis, ActivePhysics *apOther) {
+	markPlayerInRange(apThis);
 	return true;
 }
 bool dBird_c::collisionCat13_Hammer(ActivePhysics *apThis, ActivePhysics *apOther) {

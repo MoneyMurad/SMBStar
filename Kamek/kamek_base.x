@@ -40,6 +40,32 @@ SECTIONS {
 	returnFromBGFix = 0x80115e5c;
 	returnFromHijack = 0x800d8f6c;
 
+	StartStarBGM = 0x80060720;
+	StopStarBGM = 0x80060750;
+
+	overrideBitCheck = 0x8019e63c;
+	powSongSwitch = 0x8019e7ac;
+	returnFromBitOverride = 0x8019e7fc;
+
+	/* Songs */
+	instance__Q34nw4r3snd9SndBgmMgr = 0x8042a790;
+    instance2__Q34nw4r3snd9SndBgmMgr = 0x8042a794;
+    instance__Q34nw4r3snd11SndSceneMgr = 0x8042a788;
+    instance2__Q34nw4r3snd11SndSceneMgr = 0x8042a78c;
+    instance__Q34nw4r3snd9SndAudioMgr = 0x8042a768;
+    ApparentlyStartsMusic__Q34nw4r3snd9SndBgmMgrFPQ34nw4r3snd11SndSceneMgrUi = 0x8019bd90;
+    ApparentlyStopsMusic__Q34nw4r3snd9SndBgmMgrFPQ34nw4r3snd11SndSceneMgrUi = 0x8019be60;
+    BGMFlags = 0x80429fc4;
+    startGameStateBgm__Q34nw4r3snd9SndBgmMgrFv = 0x8019e600;
+    changeBgmTrack__Q34nw4r3snd9SndBgmMgrFv = 0x8019e830;
+    setBaseBgmVolume__Q34nw4r3snd9SndBgmMgrFv = 0x8019eae0;
+    startPreparedBGM__Q34nw4r3snd9SndBgmMgrFv = 0x8019e420;
+    startGameStateBgmHurry__Q34nw4r3snd9SndBgmMgrFv = 0x8019ea20;
+    instance__Q34nw4r3snd11SndAudioMgr = 0x8042a768;
+
+	instance__Q34nw4r3snd9SndAudioMgr = 0x8042a768;
+	stopAllBgm__Q34nw4r3snd9SndAudioMgrFi = 0x80196050;
+
 	/* Player */
 	StateID_Jump__10daPlBase_c = 0x80375f6c;
 	StateID_Propel_10daPlBase_c = 0x80376530;
@@ -2210,6 +2236,8 @@ SECTIONS {
 
 	fmod = 0x802E8904;
 
+	pleaseAskFredbear = 0x8019e61c;
+
 	/* MEGA TESTS */
 	usedForDeterminingStatePress_or_playerCollision = 0x800964a0;
 	DoStuffAndMarkDead = 0x80097170;
@@ -2219,6 +2247,9 @@ SECTIONS {
 	posIsInZone = 0x800b5730;
 	ScreenPositionClass = 0x8042a2e8;
 	ShakeScreen = 0x800d8d50;
+
+	getsoundblahblah = 0x802758a0;
+	FUN_8019F1D0 = 0x8019f1d0;
 
 	/* daEnemy_c */
 	/*FIXME bad vtable address :( */
@@ -2494,20 +2525,30 @@ SECTIONS {
 	dword_803572A0 = 0x803572A0;
 	EffectRelated = 0x8016D780;
 
-	daEnSnakeBlock_c__StateID_Move = 0x80B1B3F8;
-	doSomethingElseWithTravelInfoBuffer__SnakeSubEx = 0x80AA73E0;
+	daEnSnakeBlock_c__StateID_Move = 0x80B1B3F8;/*mi*/
+	doSomethingElseWithTravelInfoBuffer__SnakeSubEx = 0x80AA73E0;/*mi*/
 	continueFromFirstLoop = 0x80AA7C10;
 	continueFromNodeLoop = 0x80AA7C80;
 	continueFromSnakeBlockLoop3 = 0x80AA7454;
+	continueFromSnakeBlockBackwards = 0x80AA7404;
 	continueFromStoreIsLoopToR9_1 = 0x80AA85A0;
 	continueFromStoreIsLoopToR9_2 = 0x80AA85B0;
+	continueFromOtherDirectionsSpawn = 0x80AA789C;
+	continueFromAdjustSpawnPosition = 0x80AA6F38;
+	continueFromRemoveSFX = 0x80AA85B0;
+	continueFromDoNotMoveIfEvent = 0x80AA72C4;
+	continueFromMakeTIBTwiceAsBig = 0x80AA7C18;
+	continueFromCreateBackwardsData = 0x80AA8154;
+	returnFromDoNotMoveIfEvent = 0x80AA72E0;
+	skipFromRemoveSFX = 0x80AA85DC;
 	cancelNodeLoop = 0x80AA8138;
 	firstLoop = 0x80AA7BC0;
 	loopForNodes = 0x80AA7C2C;
 	finishNodeLoop = 0x80AA8138;
 	abs = 0x802DE804;
-	dRail__getRailByID_static = 0x800D91B0;
+	dRail__getRailByID_static = 0x800D91B0;/*mi*/
 	loc_80AA86FC = 0x80AA86FC;
+	doSomethingElseWithTravelInfoBuffer__10SnakeSubExFv = 0x80AA73E0;/*mi*/
 	
 	/*	Horizon starts here	*/
 	returnFromJumpHeightChange = 0x801276a0;

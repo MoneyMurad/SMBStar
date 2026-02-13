@@ -198,7 +198,13 @@ int dEnEventCoin_c::onCreate()
 	doStateChange(&StateID_Wait);
 	
 	this->onExecute();
-	return true;
+
+	u64 initialFlags = dFlagMgr_c::instance->flags & dStageActor_c::creatingFlagMask;
+
+	if(dFlagMgr_c::instance->active(targetEventID))
+		return 2;
+	else
+		return 1;
 }
 
 int dEnEventCoin_c::onDraw() {
@@ -242,8 +248,11 @@ void dEnEventCoin_c::beginState_Collected()
 }
 void dEnEventCoin_c::executeState_Collected() 
 {
-	if(!this->chrAnimation.isAnimationDone())
+	if(this->timer <= 30)
+	{	
+		this->timer += 1;
 		return;
+	}
 
 	this->stopRendering = true;
 
@@ -256,13 +265,15 @@ void dEnEventCoin_c::executeState_Collected()
 	
 	if(!timedEvent)
 		//if(this->chrAnimation.isAnimationDone())
-			this->Delete(deleteForever);
+			{this->Delete(deleteForever);
+			fBase_c::Delete();}
 	else
 	{
 		if(this->timer > timeToEnd)
 		{
 			dFlagMgr_c::instance->set(event, 0, false, false, false);
 			this->Delete(deleteForever);
+			fBase_c::Delete();
 		}
 	}
 	

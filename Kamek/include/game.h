@@ -3904,8 +3904,36 @@ extern "C" void StrmSound_SetTrackVolume(void *_this, u32 mask, int count, float
 extern "C" void SetPitch__Q44nw4r3snd6detail10BasicSoundFf(void *_this, float value);
 extern "C" void SetVolume__Q44nw4r3snd6detail10BasicSoundFfi(void *_this, float value, int count);
 
+extern "C" void stopAllBgm__Q34nw4r3snd9SndAudioMgrFi(void *_this, int param_2);
+extern "C" void changeBgmTrack__Q34nw4r3snd9SndBgmMgrFv(void *_this);
+
 namespace nw4r {
 	namespace snd {
+		struct SndSceneMgr {
+			static SndSceneMgr *instance;
+			u8 trackBitFlag;   // first byte is what we need
+			void changeBgmTrack();
+		};
+
+		class SndAudioMgr {
+			public:
+				static SndAudioMgr* instance;
+				
+				void stopAllBgm(int param) {
+					stopAllBgm__Q34nw4r3snd9SndAudioMgrFi(this, param);
+				}
+		};
+		
+		struct SndBgmMgr {
+			static SndBgmMgr *instance;
+			void changeBgmTrack();
+
+			void startGameStateBgm()
+			{
+				changeBgmTrack__Q34nw4r3snd9SndBgmMgrFv(this);
+			}
+		};
+
 		class SoundHandle {
 			protected:
 				void *data;

@@ -21,6 +21,7 @@ class daLongBlock_c : public daEnBlockMain_c {
 	bool spawnedThisBump;
 	bool pendingHitState;
 	bool pendingItemSpawn;
+	bool isInvisible;
 	u32 pendingItemSettings;
 	Vec pendingItemPos;
 	int pendingItemSoundId;
@@ -29,6 +30,8 @@ class daLongBlock_c : public daEnBlockMain_c {
 	u32 coinSettings;
 	dStageActor_c *item;
 	dStageActor_c *bigCoin;
+
+	float ogPos;
 	
 	m3d::anmTexSrt_c body;
 
@@ -93,6 +96,8 @@ int daLongBlock_c::onCreate() {
 
 	allocator.unlink();
 
+	this->ogPos = this->pos.y;
+
 	blockInit(pos.y);
 
 	physicsInfo.x1 = -24;
@@ -122,6 +127,8 @@ int daLongBlock_c::onCreate() {
 	this->pendingItemSettings = 0;
 	this->pendingItemPos = (Vec){0.0f, 0.0f, 0.0f};
 	this->pendingItemSoundId = 0;
+
+	this->isInvisible = (settings & 0x2000);
 	
 	this->pos.z = 200.0f;
 	
@@ -175,7 +182,8 @@ int daLongBlock_c::onExecute() {
 int daLongBlock_c::onDraw() {
 	if(!this->isHit)
 	{
-		model.scheduleForDrawing();
+		if(!this->isInvisible)
+			model.scheduleForDrawing();
 	}
 	else
 	{
@@ -261,6 +269,8 @@ void daLongBlock_c::spawnContents(bool isDown) {
 }
 
 void daLongBlock_c::finishHit() {
+	this->pos.y = this->ogPos;
+	
 	if (pendingHitState)
 		doStateChange(&StateID_Hit);
 	else
@@ -320,6 +330,8 @@ void daLongBlock_c::executeState_Wait() {
 
 	if (result == 0)
 		return;
+
+	this->isInvisible = false; // make it so we can see the block after hitting it
 
 	if (result == 1) {
 		spawnContents(false);

@@ -1,0 +1,13 @@
+---
+source_files: [../src/newSongInterject.S]
+hooks:
+  - name: NewSongInterject
+    type: branch_insn
+    branch_type: b
+    src_addr_pal: 0x8019e63c
+    target_func: 'overrideBit'
+
+  - name: HiHello
+    type: patch
+    addr_pal: 0x80060738
+    data: '38800008'
