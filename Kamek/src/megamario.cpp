@@ -14,7 +14,7 @@ const char* MegaMarioArc[] = {"obj_mega", NULL};
 #define MEGA_TOTAL_TIME   (17 * 60)
 #define MEGA_FLASH_TIME   (3 * 60)
 // -5500 is the standard "behind layer 2" depth in this codebase.
-static const float kMegaDrawZOffset = -5500.0f;
+static const float kMegaDrawZOffset = -3000.0f;
 
 extern void StopSoundRelated(int);
 
