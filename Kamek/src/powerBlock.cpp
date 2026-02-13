@@ -123,11 +123,13 @@ int daPowerBlock_c::onExecute() {
     if(this->isHit)
     {
         if(this->chrAnimation.isAnimationDone()) {
-            dStageActor_c* daShroom = (dStageActor_c*)CreateActor(779, 0, this->pos, 0, 0);
+            Vec spawnPos = this->pos;
+            spawnPos.y -= 32.0f;
+            dStageActor_c* daShroom = (dStageActor_c*)CreateActor(779, 0, spawnPos, 0, 0);
 
-            if(!this->dir) daShroom->pos.y -= 35.0f;
-			daShroom->speed.y = (this->dir) ? 2.0f : -2.0f;
-			daShroom->speed.x = 0.35f;
+            if(!this->dir) daShroom->pos.y -= 32.0f;
+			daShroom->speed.y = (this->dir) ? 7.0f : -7.0f;
+			daShroom->speed.x = 2.5f;
             this->Delete(0);
         }
     }
