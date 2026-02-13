@@ -429,10 +429,14 @@ int dMegaMario_c::onExecute() {
 	if (!this->wasOnGround && onGround) {
 		canBreakThisLanding = true;
 
-		if(this->weJumped) {
-			ShakeScreen(ScreenPositionClass, 0, 1, 0, 0); // add screenshake effect
-			static nw4r::snd::StrmSoundHandle megaStompHandle;
-			PlaySoundWithFunctionB4(SoundRelatedClass, &megaStompHandle, SFX_MEGA_STOMP, 1);
+		if(this->weJumped) 
+		{
+			if(this->speed.y <= 0.0f)
+			{
+				ShakeScreen(ScreenPositionClass, 0, 1, 0, 0); // add screenshake effect
+				static nw4r::snd::StrmSoundHandle megaStompHandle;
+				PlaySoundWithFunctionB4(SoundRelatedClass, &megaStompHandle, SFX_MEGA_STOMP, 1);
+			}
 		}
 
 		this->weJumped = false;
@@ -736,8 +740,6 @@ void dMegaMario_c::beginState_MegaOutro() {
 	max_speed.x = max_speed.y = 0.0f;
 
 	s_handle.Stop(30);
-
-	StartBGMMusic();
 	
 	static nw4r::snd::StrmSoundHandle megaPowerdownHandle;
 	PlaySoundWithFunctionB4(SoundRelatedClass, &megaPowerdownHandle, SFX_MEGA_POWERDOWN, 1);
@@ -775,7 +777,10 @@ void dMegaMario_c::executeState_MegaOutro() {
 	}
 
 	if(this->timer == 53)
+	{
 		daPlayer->clearFlag(0xBB); // make mario visible again
+		StartBGMMusic();
+	}
 }
 
 void dMegaMario_c::endState_MegaOutro() {
