@@ -55,6 +55,7 @@ public:
     bool stepOffAnimActive;
     int stepOffAnimTimer;
     float stepOffBaseY;
+    bool prevOnBlockState; // Track previous frame's onBlock state for step-on detection
     
     // Color variants
     enum Color {
@@ -192,6 +193,7 @@ int daEnNoteBlock_c::onCreate() {
     stepOffAnimActive = false;
     stepOffAnimTimer = 0;
     stepOffBaseY = originalY;
+    prevOnBlockState = false;
 
     for(int i = 0; i < 4; i++) {
         this->playersGoUp[i] = false;
@@ -251,6 +253,15 @@ int daEnNoteBlock_c::onExecute() {
     }
     
     int onBlock = updatePlayersOnBlock();
+    
+    // Detect initial step-on: transition from no players to players on block
+    if(onBlock && !prevOnBlockState) {
+        // Play sound when player initially steps on
+        static nw4r::snd::StrmSoundHandle stepOnHandle;
+        PlaySoundWithFunctionB4(SoundRelatedClass, &stepOnHandle, SFX_FACEBLOCK_DOWN, 1);
+    }
+    prevOnBlockState = (onBlock != 0);
+    
     if(onBlock) 
     {
         this->pos.y = originalY - 0.75f;
@@ -287,6 +298,9 @@ int daEnNoteBlock_c::onExecute() {
                 doStateChange(&StateID_Wait);
                 bouncedThisFrame = true;
                 wasSteppedOn = true;
+
+                static nw4r::snd::StrmSoundHandle bounceHandler;
+                PlaySoundWithFunctionB4(SoundRelatedClass, &bounceHandler, SFX_FACEBLOCK_BOUNCE, 1);
             }
             prevJump[i] = curJump;
             prevOnBlock[i] = onBlockNow;
@@ -303,6 +317,10 @@ int daEnNoteBlock_c::onExecute() {
     else if(!onBlock && !wasSteppedOn && !bounceAnimActive && !stepOffAnimActive) {
         wasSteppedOn = true;
         if(!(strcmp(currentState->getName(), "daEnNoteBlock_c::StateID_Wait"))) {
+            // Playsound
+            static nw4r::snd::StrmSoundHandle stepOffHandle;
+            PlaySoundWithFunctionB4(SoundRelatedClass, &stepOffHandle, SFX_FACEBLOCK_UP, 1);
+            
             stepOffAnimActive = true;
             stepOffAnimTimer = 0;
             stepOffBaseY = originalY;
