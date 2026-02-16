@@ -12,6 +12,9 @@
 
 const char* MMarc[] = {"obj_mega", NULL};
 
+extern "C" void *ShakeScreen(void *, unsigned int, unsigned int, unsigned int, unsigned int);
+extern "C" void* ScreenPositionClass;
+
 class dMegaMushroom_c : public daBoss {
     int onCreate();
     int onExecute();
@@ -30,6 +33,7 @@ class dMegaMushroom_c : public daBoss {
     float timer;
     int Baseline;
     u32 cmgr_returnValue;
+    bool wasOnGround; // Track previous frame's ground state for landing detection
     
     bool calculateTileCollisions();
 
@@ -230,6 +234,7 @@ int dMegaMushroom_c::onCreate()
 	collMgr.calculateBelowCollisionWithSmokeEffect();
 
 	cmgr_returnValue = collMgr.isOnTopOfTile();
+	wasOnGround = collMgr.isOnTopOfTile(); // Initialize based on starting position
 
 	this->y_speed_inc = -0.1875;
 	doStateChange(&StateID_Move);
@@ -333,6 +338,17 @@ void dMegaMushroom_c::executeState_Move()
 	}
 
     bool turn = calculateTileCollisions();
+	
+	// Detect landing: transition from air to ground
+	bool onGround = collMgr.isOnTopOfTile();
+	if (!wasOnGround && onGround && this->speed.y <= 0.0f) {
+		// Shake screen and play sound when landing
+		ShakeScreen(ScreenPositionClass, 0, 1, 0, 0);
+		static nw4r::snd::StrmSoundHandle landingHandle;
+		PlaySoundWithFunctionB4(SoundRelatedClass, &landingHandle, SFX_MEGA_STOMP, 1);
+	}
+	wasOnGround = onGround;
+	
 	if(turn) {
 		this->direction ^= 1;
         collMgr.calculateBelowCollisionWithSmokeEffect();
