@@ -13,6 +13,8 @@ const char* MegaMarioArc[] = {"obj_mega", NULL};
 
 #define MEGA_TOTAL_TIME   (17 * 60)
 #define MEGA_FLASH_TIME   (3 * 60)
+// -5500 is the standard "behind layer 2" depth in this codebase.
+static const float kMegaDrawZOffset = -3000.0f;
 
 extern void StopSoundRelated(int);
 
@@ -231,7 +233,7 @@ bool dMegaMario_c::collisionCat5_Mario(ActivePhysics *apThis, ActivePhysics *apO
 }
 
 void dMegaMario_c::updateModelMatrices() {
-	matrix.translation(pos.x, pos.y, pos.z);
+	matrix.translation(pos.x, pos.y, pos.z + kMegaDrawZOffset);
 	matrix.applyRotationYXZ(&rot.x, &rot.y, &rot.z);
 
 	bodyModel.setDrawMatrix(matrix);
@@ -291,11 +293,11 @@ int dMegaMario_c::onCreate()
 	
 	// Dist from center
 	HitMeBaby.xDistToCenter = 0.0;
-	HitMeBaby.yDistToCenter = 55.0;
+	HitMeBaby.yDistToCenter = 45.0f;
 	
 	// Size
 	HitMeBaby.xDistToEdge = 24.0;
-	HitMeBaby.yDistToEdge = 60.0;
+	HitMeBaby.yDistToEdge = 50.0f;
 	
 	HitMeBaby.category1 = 0x3;
 	HitMeBaby.category2 = 0x0;
@@ -340,7 +342,8 @@ int dMegaMario_c::onCreate()
 	belowSensor.lineB =  size << 12;
 	belowSensor.distanceFromCenter = -15;
 
-	int halfHeight = 60; // match ActivePhysics yDistToEdge
+	float halfHeight = 50.0f; // match ActivePhysics yDistToEdge
+	float hitboxTop = HitMeBaby.yDistToCenter + HitMeBaby.yDistToEdge;
 
 	// SIDE SENSOR
 	adjacentSensor.flags =
@@ -366,7 +369,8 @@ int dMegaMario_c::onCreate()
 	
 	aboveSensor.lineA = -size << 12;
 	aboveSensor.lineB =  size << 12;
-	aboveSensor.distanceFromCenter = int(ceil(halfHeight * 1.75)) << 12;
+	// Keep above sensor aligned to the hitbox top to avoid clipping into solid tiles.
+	aboveSensor.distanceFromCenter = int(ceil(hitboxTop)) << 12;
 
 	// Register sensors
 	collMgr.init(this, &belowSensor, &aboveSensor, &adjacentSensor);
@@ -623,6 +627,7 @@ void dMegaMario_c::collectNearbyPickups()
 				continue;
 
 			awardCoins(playerIndex, 1);
+			SpawnEffect("Wm_ob_coinkira", 0, &ac->pos, &(S16Vec){0,0,0}, &(Vec){1.0, 1.0, 1.0});
 			ac->Delete(1);
 		}
 	}
@@ -740,7 +745,7 @@ void dMegaMario_c::beginState_MegaOutro() {
 	max_speed.x = max_speed.y = 0.0f;
 
 	s_handle.Stop(30);
-	
+
 	static nw4r::snd::StrmSoundHandle megaPowerdownHandle;
 	PlaySoundWithFunctionB4(SoundRelatedClass, &megaPowerdownHandle, SFX_MEGA_POWERDOWN, 1);
 }

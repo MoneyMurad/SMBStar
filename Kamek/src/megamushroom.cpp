@@ -68,6 +68,21 @@ CREATE_STATE(dMegaMushroom_c, Collect);
 const SpriteData MegaData = {ProfileId::mega, 8, -0x10, 0, 0, 0x100, 0x100, 0, 0, 0, 0, 0};
 Profile MegaProfile(&dMegaMushroom_c::build, SpriteId::mega, &MegaData, ProfileId::mega, ProfileId::mega, "mega", MMarc);
 
+namespace {
+	const float kMegaMushroomWalkSpeed = 0.75f;
+	const float kMegaMushroomAirGravity = 0.045f;
+	const float kMegaMushroomLaunchGravity = 0.22f;
+	const float kMegaMushroomMaxFallSpeed = -8.0f;
+	const float kMegaMushroomLaunchLerp = 0.06f;
+	const float kMegaMushroomGroundSnapLerp = 0.16f;
+	const float kMegaMushroomLaunchYDrag = 0.16f;
+	const float kMegaMushroomLaunchAdjustFrames = 14.0f;
+
+	inline float absf(float value) {
+		return (value < 0.0f) ? -value : value;
+	}
+}
+
 dActor_c* dMegaMushroom_c::build() {
 	void *buf = AllocFromGameHeap1(sizeof(dMegaMushroom_c));
 	return new(buf) dMegaMushroom_c;
@@ -105,8 +120,8 @@ void dMegaMushroom_c::spriteCollision(ActivePhysics *apThis, ActivePhysics *apOt
     this->direction ^= 1;
     collMgr.calculateBelowCollisionWithSmokeEffect();
 
-    this->speed.x = (direction) ? -0.35f : 0.35f;
-    this->max_speed.x = (direction) ? -0.35f : 0.35f;
+    this->speed.x = (direction) ? -kMegaMushroomWalkSpeed : kMegaMushroomWalkSpeed;
+    this->max_speed.x = (direction) ? -kMegaMushroomWalkSpeed : kMegaMushroomWalkSpeed;
 
 	return;
 }
@@ -262,8 +277,10 @@ bool dMegaMushroom_c::calculateTileCollisions()
 	
 	if(collMgr.isOnTopOfTile())
 	{
+		const float targetX = (direction == 1) ? -kMegaMushroomWalkSpeed : kMegaMushroomWalkSpeed;
 		speed.y = 0.0f;
-		max_speed.x = (direction == 1) ? -speed.x : speed.x;
+		speed.x = speed.x + ((targetX - speed.x) * kMegaMushroomGroundSnapLerp);
+		max_speed.x = targetX;
 	}
 	else
 		x_speed_inc = 0.0f;
@@ -282,23 +299,37 @@ bool dMegaMushroom_c::calculateTileCollisions()
 // we're on the move
 void dMegaMushroom_c::beginState_Move()
 {
-    this->speed.x = (direction) ? -0.35f : 0.35f;
-    this->max_speed.x = (direction) ? -0.35f : 0.35f;
+    this->speed.x = (direction) ? -kMegaMushroomWalkSpeed : kMegaMushroomWalkSpeed;
+    this->max_speed.x = (direction) ? -kMegaMushroomWalkSpeed : kMegaMushroomWalkSpeed;
 
     this->timer = 0;
 }
 void dMegaMushroom_c::executeState_Move()
 {
-    HandleXSpeed();
-    HandleYSpeed();
-    doSpriteMovement();
+	this->timer += 1.0f;
+
+	const float targetX = (direction) ? -kMegaMushroomWalkSpeed : kMegaMushroomWalkSpeed;
+	if (absf(this->speed.x) > (kMegaMushroomWalkSpeed + 0.01f))
+		this->speed.x = this->speed.x + ((targetX - this->speed.x) * kMegaMushroomLaunchLerp);
+	this->max_speed.x = targetX;
 
 	if(!collMgr.isOnTopOfTile())
 	{
-		this->speed.y -= 0.02;
+		float launchT = this->timer / kMegaMushroomLaunchAdjustFrames;
+		if (launchT > 1.0f)
+			launchT = 1.0f;
 
-		if(this->speed.y <= -2.0f)
-			this->speed.y = -2.0f;
+		const float launchBlend = 1.0f - launchT;
+		const float gravity = kMegaMushroomAirGravity + ((kMegaMushroomLaunchGravity - kMegaMushroomAirGravity) * launchBlend);
+
+		// Extra upward drag fades out smoothly so the launch arc doesn't kink into a "V".
+		if (this->speed.y > 0.0f && launchBlend > 0.0f)
+			this->speed.y -= (kMegaMushroomLaunchYDrag * launchBlend);
+
+		this->speed.y -= gravity;
+
+		if(this->speed.y <= kMegaMushroomMaxFallSpeed)
+			this->speed.y = kMegaMushroomMaxFallSpeed;
 	}
 
     bool turn = calculateTileCollisions();
@@ -306,8 +337,8 @@ void dMegaMushroom_c::executeState_Move()
 		this->direction ^= 1;
         collMgr.calculateBelowCollisionWithSmokeEffect();
 
-        this->speed.x = (direction) ? -0.35f : 0.35f;
-        this->max_speed.x = (direction) ? -0.35f : 0.35f;
+        this->speed.x = (direction) ? -kMegaMushroomWalkSpeed : kMegaMushroomWalkSpeed;
+        this->max_speed.x = (direction) ? -kMegaMushroomWalkSpeed : kMegaMushroomWalkSpeed;
 	}
 }
 void dMegaMushroom_c::endState_Move() {}
