@@ -15,6 +15,24 @@ const char* MegaMarioArc[] = {"obj_mega", NULL};
 #define MEGA_FLASH_TIME   (3 * 60)
 // -5500 is the standard "behind layer 2" depth in this codebase.
 static const float kMegaDrawZOffset = -3000.0f;
+static const float kMegaStandXDistToCenter = 0.0f;
+static const float kMegaStandYDistToCenter = 45.0f;
+static const float kMegaStandXDistToEdge = 24.0f;
+static const float kMegaStandYDistToEdge = 50.0f;
+static const float kMegaCrouchXDistToCenter = kMegaStandXDistToCenter;
+static const float kMegaCrouchYDistToCenter = 20.0f;
+static const float kMegaCrouchXDistToEdge = 12.0f;
+static const float kMegaCrouchYDistToEdge = 25.0f;
+static const int kMegaStandSensorHalfWidth = 20;
+static const int kMegaCrouchSensorHalfWidth = 10;
+static const int kMegaStandBelowOffset = -15;
+static const int kMegaCrouchBelowOffset = -15;
+static const int kMegaStandAdjacentHeight = 100;
+static const int kMegaCrouchAdjacentHeight = 50;
+static const int kMegaStandAdjacentOffset = 22;
+static const int kMegaCrouchAdjacentOffset = 11;
+static const int kMegaStandAboveOffset = 95 << 12;
+static const int kMegaCrouchAboveOffset = 48 << 12;
 
 extern void StopSoundRelated(int);
 
@@ -61,6 +79,8 @@ class dMegaMario_c : public daBoss {
 	bool markInvisible;
 	bool finishingUp;
 	int animTimer;
+	bool isCrouching;
+	bool crouchJumping;
 
 	Vec originalPos;
 
@@ -92,6 +112,7 @@ class dMegaMario_c : public daBoss {
     public: static dActor_c *build();
     public: dAcPy_c *daPlayer;
     public: void setdaPlayer(dAcPy_c *player);
+	public: void updateCrouchCollision(bool crouch);
 	
 	USING_STATES(dMegaMario_c);
 	DECLARE_STATE(Idle);
@@ -269,6 +290,8 @@ int dMegaMario_c::onCreate()
 	this->speedFrameIncrease = 7;
 	this->markInvisible = false;
 	this->animTimer = 0;
+	this->isCrouching = false;
+	this->crouchJumping = false;
 
 	originalPos = this->pos;
 
@@ -292,12 +315,12 @@ int dMegaMario_c::onCreate()
     ActivePhysics::Info HitMeBaby;
 	
 	// Dist from center
-	HitMeBaby.xDistToCenter = 0.0;
-	HitMeBaby.yDistToCenter = 45.0f;
+	HitMeBaby.xDistToCenter = kMegaStandXDistToCenter;
+	HitMeBaby.yDistToCenter = kMegaStandYDistToCenter;
 	
 	// Size
-	HitMeBaby.xDistToEdge = 24.0;
-	HitMeBaby.yDistToEdge = 50.0f;
+	HitMeBaby.xDistToEdge = kMegaStandXDistToEdge;
+	HitMeBaby.yDistToEdge = kMegaStandYDistToEdge;
 	
 	HitMeBaby.category1 = 0x3;
 	HitMeBaby.category2 = 0x0;
@@ -327,7 +350,7 @@ int dMegaMario_c::onCreate()
 	collMgr.init(this, &below, &above, &adjacent);
 	collMgr.calculateBelowCollisionWithSmokeEffect();
 	
-	int size = 20; // MegaMario width in tiles
+	int size = kMegaStandSensorHalfWidth; // MegaMario width in tiles
 
 	this->fazcheck = 0;
 
@@ -340,10 +363,7 @@ int dMegaMario_c::onCreate()
 
 	belowSensor.lineA = -size << 12;
 	belowSensor.lineB =  size << 12;
-	belowSensor.distanceFromCenter = -15;
-
-	float halfHeight = 50.0f; // match ActivePhysics yDistToEdge
-	float hitboxTop = HitMeBaby.yDistToCenter + HitMeBaby.yDistToEdge;
+	belowSensor.distanceFromCenter = kMegaStandBelowOffset;
 
 	// SIDE SENSOR
 	adjacentSensor.flags =
@@ -354,10 +374,10 @@ int dMegaMario_c::onCreate()
 
 	// Vertical line spanning full body height
 	adjacentSensor.lineA =  0 << 12;
-	adjacentSensor.lineB =  100 << 12;
+	adjacentSensor.lineB =  kMegaStandAdjacentHeight << 12;
 
 	// Horizontal offset from center (how far to the side)
-	adjacentSensor.distanceFromCenter = 22 << 12; // match xDistToEdge
+	adjacentSensor.distanceFromCenter = kMegaStandAdjacentOffset << 12; // match xDistToEdge
 
 	// ABOVE SENSOR
 	aboveSensor.flags =
@@ -370,7 +390,7 @@ int dMegaMario_c::onCreate()
 	aboveSensor.lineA = -size << 12;
 	aboveSensor.lineB =  size << 12;
 	// Keep above sensor aligned to the hitbox top to avoid clipping into solid tiles.
-	aboveSensor.distanceFromCenter = int(ceil(hitboxTop)) << 12;
+	aboveSensor.distanceFromCenter = kMegaStandAboveOffset;
 
 	// Register sensors
 	collMgr.init(this, &belowSensor, &aboveSensor, &adjacentSensor);
@@ -464,6 +484,10 @@ int dMegaMario_c::onExecute() {
 	{
 		this->patAnimation.setFrameForEntry(1, 0);
 	}
+	else if(this->texState == 4)
+	{
+		this->patAnimation.setFrameForEntry(6, 0);
+	}
 	else if(this->texState == 1)
 	{
 		if(this->animTimer >= speedFrameIncrease)
@@ -501,6 +525,50 @@ int dMegaMario_c::onExecute() {
 int dMegaMario_c::onDelete()
 {
     return true;
+}
+
+void dMegaMario_c::updateCrouchCollision(bool crouch)
+{
+	if (this->isCrouching == crouch)
+		return;
+
+	this->isCrouching = crouch;
+	ActivePhysics::Info &info = this->aPhysics.info;
+
+	if (crouch) {
+		info.xDistToCenter = kMegaCrouchXDistToCenter;
+		info.yDistToCenter = kMegaCrouchYDistToCenter;
+		info.xDistToEdge = kMegaCrouchXDistToEdge;
+		info.yDistToEdge = kMegaCrouchYDistToEdge;
+
+		belowSensor.lineA = -(kMegaCrouchSensorHalfWidth << 12);
+		belowSensor.lineB =  kMegaCrouchSensorHalfWidth << 12;
+		belowSensor.distanceFromCenter = kMegaCrouchBelowOffset;
+
+		adjacentSensor.lineB = kMegaCrouchAdjacentHeight << 12;
+		adjacentSensor.distanceFromCenter = kMegaCrouchAdjacentOffset << 12;
+
+		aboveSensor.lineA = -(kMegaCrouchSensorHalfWidth << 12);
+		aboveSensor.lineB =  kMegaCrouchSensorHalfWidth << 12;
+		aboveSensor.distanceFromCenter = kMegaCrouchAboveOffset;
+	}
+	else {
+		info.xDistToCenter = kMegaStandXDistToCenter;
+		info.yDistToCenter = kMegaStandYDistToCenter;
+		info.xDistToEdge = kMegaStandXDistToEdge;
+		info.yDistToEdge = kMegaStandYDistToEdge;
+
+		belowSensor.lineA = -(kMegaStandSensorHalfWidth << 12);
+		belowSensor.lineB =  kMegaStandSensorHalfWidth << 12;
+		belowSensor.distanceFromCenter = kMegaStandBelowOffset;
+
+		adjacentSensor.lineB = kMegaStandAdjacentHeight << 12;
+		adjacentSensor.distanceFromCenter = kMegaStandAdjacentOffset << 12;
+
+		aboveSensor.lineA = -(kMegaStandSensorHalfWidth << 12);
+		aboveSensor.lineB =  kMegaStandSensorHalfWidth << 12;
+		aboveSensor.distanceFromCenter = kMegaStandAboveOffset;
+	}
 }
 
 bool dMegaMario_c::calculateTileCollisions()
@@ -845,18 +913,31 @@ void daPlBase_c::executeState_MegaMario() {
 	if(megaMario->scale.x != 1.5f)
 		return;
 
-	if(megaMario->finishingUp) return;
+	if (megaMario->finishingUp) {
+		megaMario->crouchJumping = false;
+		megaMario->updateCrouchCollision(false);
+		return;
+	}
 	
 	someFlightRelatedFunction(this); // Handles x movement apparently
 	Remocon* con = GetRemoconMng()->controllers[this->settings % 4];
 	
 	bool onGround = megaMario->collMgr.isOnTopOfTile();
+	bool downHeld = (con->heldButtons & WPAD_DOWN);
+	if (onGround && !downHeld)
+		megaMario->crouchJumping = false;
+
+	bool wantsCrouch = (onGround && downHeld) || (!onGround && megaMario->crouchJumping);
+	megaMario->updateCrouchCollision(wantsCrouch);
+
 	int inputDir = 0;
 	u32 lrHeld = con->heldButtons & (WPAD_LEFT | WPAD_RIGHT);
 	if (lrHeld == WPAD_LEFT)
 		inputDir = -1;
 	else if (lrHeld == WPAD_RIGHT)
 		inputDir = 1;
+	if (wantsCrouch && onGround)
+		inputDir = 0;
 
 	float absSpeed = megaAbs(megaMario->speed.x);
 	float accel = SMB1_MEGA_ACCEL_WALK;
@@ -928,6 +1009,8 @@ void daPlBase_c::executeState_MegaMario() {
 		megaMario->max_speed.x = 0.0f;
 
 	if ((con->nowPressed & WPAD_TWO) && onGround) {
+		megaMario->crouchJumping = wantsCrouch;
+
 		float jumpSpeed = (absSpeed >= SMB1_MEGA_FAST_JUMP_THRESHOLD) ? SMB1_MEGA_JUMP_SPEED_FAST : SMB1_MEGA_JUMP_SPEED_NORMAL;
 		megaMario->speed.y = jumpSpeed;
 		megaMario->max_speed.y = jumpSpeed;
@@ -976,7 +1059,9 @@ void daPlBase_c::executeState_MegaMario() {
 	// Movement is handled by the Mega Mario actor's state to avoid double-updating physics.
 
 	// TEXTURE ANIMS FOR MEGA MARIO SPRITE
-	if(!onGround || megaMario->weJumped || megaMario->speed.y > 0.0f)
+	if(wantsCrouch)
+		megaMario->texState = 4;
+	else if(!onGround || megaMario->weJumped || megaMario->speed.y > 0.0f)
 		megaMario->texState = 0;
 	else if(turning)
 		megaMario->texState = 3;
