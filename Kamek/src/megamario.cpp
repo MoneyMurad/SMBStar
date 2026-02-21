@@ -863,7 +863,7 @@ void dMegaMario_c::endState_MegaOutro() {
 ////////////////////////////////////////////////////////////////////////////////////
 // PLAYER STATES
 
-static const float SMB1_MEGA_MAX_RUN_SPEED = 3.6f;
+static const float SMB1_MEGA_MAX_RUN_SPEED = 3.8f;
 static const float SMB1_MEGA_MAX_WALK_SPEED = 2.25f;
 static const float SMB1_MEGA_ACCEL_RUN = 0.080f;
 static const float SMB1_MEGA_ACCEL_WALK = 0.055f;
@@ -871,7 +871,7 @@ static const float SMB1_MEGA_ACCEL_FAST = 0.072f;
 static const float SMB1_MEGA_ACCEL_REVERSE = 0.160f;
 static const float SMB1_MEGA_AIR_CONTROL_SCALE = 0.85f;
 static const float SMB1_MEGA_FAST_FRICTION_THRESHOLD = 2.6f;
-static const float SMB1_MEGA_FAST_JUMP_THRESHOLD = 2.25f;
+static const float SMB1_MEGA_FAST_JUMP_THRESHOLD = 2.5f;
 static const float SMB1_MEGA_JUMP_SPEED_NORMAL = 9.0f;
 static const float SMB1_MEGA_JUMP_SPEED_FAST = 9.8f;
 static const float SMB1_MEGA_GRAVITY_HELD = 0.18f;
