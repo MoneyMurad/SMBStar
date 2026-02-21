@@ -62,7 +62,7 @@ class daLongBlock_c : public daEnBlockMain_c {
 CREATE_STATE(daLongBlock_c, Wait);
 CREATE_STATE(daLongBlock_c, Hit);
 
-const SpriteData LongBlockData = {ProfileId::tripleblock, 8, -8, 0, 0, 0x100, 0x100, 0, 0, 0, 0, 0};
+const SpriteData LongBlockData = {ProfileId::tripleblock, 8, -0x10, 0, 0, 0x100, 0x100, 0, 0, 0, 0, 0};
 Profile LongBlockProfile(&daLongBlock_c::build, SpriteId::tripleblock, &LongBlockData, ProfileId::tripleblock, ProfileId::tripleblock, "tripleblock", LongBlockFileList);
 
 extern "C" int CheckExistingPowerup(void * Player);
@@ -75,8 +75,11 @@ dActor_c  *daLongBlock_c::build() {
 int daLongBlock_c::onCreate() {
 	int theme = (this->settings >> 8) & 0xF; // Nybble 10
 	const char *blockBrres = "g3d/obj_block_long.brres";
+	const char *emptyBlockBrres = "g3d/obj_block_long_empty.brres";
 	if (theme == 1)
 		blockBrres = "g3d/obj_block_long_blue.brres";
+	if (theme == 1)
+		emptyBlockBrres = "g3d/obj_block_long_empty_blue.brres";
 
 	allocator.link(-1, GameHeaps[0], 0, 0x20);
 
@@ -89,7 +92,7 @@ int daLongBlock_c::onCreate() {
 	this->body.bindEntry(&model, anmRes, 0, 0);
 	this->model.bindAnim(&this->body, 0.0);
 
-	this->resFile.data = getResource("obj_block_long", "g3d/obj_block_long_empty.brres");
+	this->resFile.data = getResource("obj_block_long", emptyBlockBrres);
 	nw4r::g3d::ResMdl uMdl = this->resFile.GetResMdl("block_long");
 	usedModel.setup(uMdl, &allocator, 0x108, 1, 0);
 
