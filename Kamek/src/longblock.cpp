@@ -22,6 +22,7 @@ class daLongBlock_c : public daEnBlockMain_c {
 	bool pendingHitState;
 	bool pendingItemSpawn;
 	bool isInvisible;
+	bool forceItemModeB;
 	bool forceSinglePowerupInMP;
 	u32 pendingItemSettings;
 	Vec pendingItemPos;
@@ -137,6 +138,7 @@ int daLongBlock_c::onCreate() {
 	this->pendingItemSettings = 0;
 	this->pendingItemPos = (Vec){0.0f, 0.0f, 0.0f};
 	this->pendingItemSoundId = 0;
+	this->forceItemModeB = ((this->settings >> 19) & 1); // Nybble 8.1
 	this->forceSinglePowerupInMP = ((this->settings >> 18) & 1); // Nybble 8.2
 
 	this->isInvisible = (settings & 0x2000);
@@ -249,7 +251,8 @@ void daLongBlock_c::spawnContents(bool isDown) {
 		pendingItemSoundId = SE_OBJ_ITEM_PRPL_APPEAR; //Propeller sound
 	
 	/*	Coin/powerup positions and settings logic	*/
-	this->itemSettings = 0 | (powerup << 0) | (((isDown) ? 3 : 2) << 18) | (4 << 9) | (2 << 10) | (this->playerID + 8 << 16);
+	u32 itemMode = this->forceItemModeB ? 0xB : 0x4;
+	this->itemSettings = (itemMode << 24) | (powerup << 0) | (this->playerID + 8 << 16);
 	this->coinSettings = 0 | (0x2 << 0) | (((isDown) ? 3 : 2) << 18) | (4 << 9) | (2 << 10) | (this->playerID + 8 << 16);
 		
 	this->coinL = (Vec) {this->pos.x - 16, this->pos.y + ((isDown) ? 1 : -2), this->pos.z};

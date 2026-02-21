@@ -2702,6 +2702,7 @@
   
   <sprite id="491" name="Triple ? Block" notes="Long block that gives two coins along with a powerup. From NSMB2. &lt;font color=&quot;orange&quot;&gt;For use with Project Star&lt;/font&gt;">
     <checkbox nybble="9.3" title="Invisible" comment="Invisible triple block akin to its single-block brother."/>
+    <checkbox nybble="8.1" title="Ignore Tiered Powerup Logic" comment="When enabled, uses EN_ITEM mode B. When disabled, defaults to mode 4."/>
     <checkbox nybble="8.2" title="Force Single Powerup In MP" comment="Multiplayer default is one powerup per active player. Enable this to force only one powerup total."/>
 
 	 <list nybble="5" title="Contains">
