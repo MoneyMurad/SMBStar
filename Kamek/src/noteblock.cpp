@@ -150,6 +150,16 @@ void daEnNoteBlock_c::updateTileState(TileState newState) {
     }
 }
 
+void daEnNoteBlock_c::bouncePlayerWhenJumpedOn(void *player) {
+    daPlBase_c *pl = (daPlBase_c*)player;
+    if (!pl)
+        return;
+
+    // Use a direct launch so this does not get counted as an enemy stomp bounce.
+    pl->speed.y = 4.5f;
+    pl->max_speed.y = 4.5f;
+}
+
 int daEnNoteBlock_c::onCreate() {
     this->allowVisual = false;
 
@@ -290,7 +300,7 @@ int daEnNoteBlock_c::onExecute() {
             if((onBlockNow || prevOnBlock[i]) && curJump && player->speed.y >= 0.0f && (!prevJump[i] || !prevOnBlock[i])) {
                 updateTileState(TILE_BOUNCE);
                 bounceTimer = 0; // Reset bounce timer
-                bouncePlayer(player, 4.5f);
+                bouncePlayerWhenJumpedOn(player);
                 playerJumped = true;
                 bounceAnimActive = true;
                 bounceAnimTimer = 0;
