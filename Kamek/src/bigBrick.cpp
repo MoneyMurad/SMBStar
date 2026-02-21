@@ -19,12 +19,14 @@ class daBigBrick_c : public daEnBlockMain_c {
 	bool isBroken;
 	u32 configuredPowerup;
 	u32 configuredCoinCount;
+	u32 configuredActorId;
+	bool forceItemModeB;
 
 	void calledWhenUpMoveExecutes();
 	void calledWhenDownMoveExecutes();
 
 	void bindAnimChr_and_setUpdateRate(const char* name, int unk, float unk2, float rate);
-	void finishBump(bool isDown);
+	void finishBump();
 	void spawnRewards(bool isDown);
 	void spawnConfiguredCoins(bool isDown);
 
@@ -100,6 +102,8 @@ int daBigBrick_c::onCreate() {
 	this->scale = (Vec){1.0f, 1.0f, 1.0f};
 	this->configuredPowerup = ((this->settings >> 28) & 0xF); // Nybble 5
 	this->configuredCoinCount = ((this->settings >> 20) & 0xFF); // Nybbles 6-7
+	this->configuredActorId = ((this->settings >> 4) & 0xFFF); // Nybbles 9-11
+	this->forceItemModeB = ((this->settings >> 19) & 1); // Nybble 8.1
 
 	doStateChange(&daBigBrick_c::StateID_Wait);
 	this->onExecute();
@@ -143,11 +147,14 @@ void daBigBrick_c::spawnConfiguredCoins(bool isDown) {
 		dStageActor_c *coin = (dStageActor_c*)CreateActor(403, 0, coinPos, 0, 0);
 
 		if (coin != 0) {
-			float sx = ((float)GenerateRandomNumber(33) - 16.0f) * 0.22f;
-			float sy = ((float)GenerateRandomNumber(25) - 12.0f) * 0.35f;
+			float sx = ((float)GenerateRandomNumber(33) - 16.0f) * 0.08f;
+			float sy;
 
-			if (sy > -1.2f && sy < 1.2f)
-				sy = (sy < 0.0f) ? -1.2f : 1.2f;
+			// Favor upward momentum while still allowing occasional downward shots.
+			if (GenerateRandomNumber(100) < 80)
+				sy = 1.6f + ((float)GenerateRandomNumber(24) * 0.18f);
+			else
+				sy = -0.8f - ((float)GenerateRandomNumber(9) * 0.2f);
 
 			coin->speed.x = sx;
 			coin->speed.y = sy;
@@ -158,19 +165,40 @@ void daBigBrick_c::spawnConfiguredCoins(bool isDown) {
 void daBigBrick_c::spawnRewards(bool isDown) {
 	this->spawnConfiguredCoins(isDown);
 
+	Vec itemPos = (Vec){this->pos.x, this->pos.y + (isDown ? -8.0f : 20.0f), this->pos.z};
+
+	// Value 11 is a special "Actor" mode: spawn configured actor ID instead of EN_ITEM.
+	if (this->configuredPowerup == 11) {
+		if (this->configuredActorId > 0 && this->configuredActorId < ProfileId::Num) {
+			dStageActor_c *spawnedActor = dStageActor_c::create((Actors)this->configuredActorId, 0, &itemPos, 0, 0);
+			if (spawnedActor != 0)
+				spawnedActor->pos.z = 100.0f;
+		}
+		return;
+	}
+
 	if (this->configuredPowerup > 10)
 		return;
 
 	static u32 ingamePowerupIDs[] = {0x0, 0x1, 0x2, 0x7, 0x9, 0xE, 0x11, 0x15, 0x19, 0x6, 0x2};
 	u32 powerup = ingamePowerupIDs[this->configuredPowerup];
-	Vec itemPos = (Vec){this->pos.x, this->pos.y + (isDown ? -8.0f : 20.0f), this->pos.z};
-	u32 itemSettings = (powerup << 0) | ((isDown ? 3 : 2) << 18) | (4 << 9) | (2 << 10) | ((this->playerID + 8) << 16);
+	u32 itemMode = this->forceItemModeB ? 0xB : 0x4;
+	u32 itemSettings = (itemMode << 24) | powerup;
 
 	dStageActor_c *item = dStageActor_c::create(EN_ITEM, itemSettings, &itemPos, 0, 0);
 	if (item != 0) {
+		float sx = ((float)GenerateRandomNumber(33) - 16.0f) * 0.08f;
+		float sy;
+
+		// Match coin fling range/distribution.
+		if (GenerateRandomNumber(100) < 80)
+			sy = 1.6f + ((float)GenerateRandomNumber(24) * 0.18f);
+		else
+			sy = -0.8f - ((float)GenerateRandomNumber(9) * 0.2f);
+
 		item->pos.z = 100.0f;
-		item->speed.y = isDown ? -7.0f : 7.0f;
-		item->speed.x = (GenerateRandomNumber(2) == 0) ? -2.5f : 2.5f;
+		item->speed.x = sx;
+		item->speed.y = sy;
 	}
 
 	dAcPy_c *player = dAcPy_c::findByID(this->playerID);
@@ -183,13 +211,12 @@ void daBigBrick_c::spawnRewards(bool isDown) {
 		PlaySoundWithFunctionB4(SoundRelatedClass, &handle, SE_OBJ_ITEM_PRPL_APPEAR, 1);
 }
 
-void daBigBrick_c::finishBump(bool isDown) {
+void daBigBrick_c::finishBump() {
 	pos.y = initialY;
 
 	if (this->pendingBreak) {
 		this->pendingBreak = false;
 		this->isBroken = true;
-		this->spawnRewards(isDown);
 	}
 
 	doStateChange(&StateID_Wait);
@@ -197,12 +224,12 @@ void daBigBrick_c::finishBump(bool isDown) {
 
 void daBigBrick_c::calledWhenUpMoveExecutes() {
 	if (initialY >= pos.y)
-		finishBump(false);
+		finishBump();
 }
 
 void daBigBrick_c::calledWhenDownMoveExecutes() {
 	if (initialY <= pos.y)
-		finishBump(true);
+		finishBump();
 }
 
 void daBigBrick_c::beginState_Wait() {
@@ -224,6 +251,7 @@ void daBigBrick_c::executeState_Wait() {
 		bindAnimChr_and_setUpdateRate("break", 1, 0.0f, 1.0f);
 		this->pendingBreak = true;
 		physics.removeFromList();
+		this->spawnRewards(result != 1);
 	}
 
 	this->hitCount++;
