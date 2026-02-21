@@ -538,6 +538,7 @@ enum
 	mega = 513,
 	megamario = 514,
 	powerblock = 515,
+	bigbrick = 516,
 
 	Num
 };
@@ -1342,6 +1343,7 @@ enum
 	mega, //780
 	megamario, //781
 	powerblock, //782
+	bigbrick, //783
 
 	Num
 };

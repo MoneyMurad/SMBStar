@@ -2883,5 +2883,27 @@
 <sprite id="515" name="Powerblock" notes="Block from SM64 which spawns power-items. From SM64DS. &lt;font color=&quot;orange&quot;&gt;For use with Project Star&lt;/font&gt;">
 </sprite>
 
+<sprite id="516" name="Big Brick" notes="A normal brick...if you're in SMB3's giant world. We grow 'em BIG here!">
+  <list nybble="5" title="Powerup" comment="Powerup spawned when the brick breaks after 3 hits.">
+    <entry value="0">Mushroom</entry>
+    <entry value="1">Star</entry>
+    <entry value="2">Coin Item</entry>
+    <entry value="3">1-Up</entry>
+    <entry value="4">Fire Flower</entry>
+    <entry value="5">Ice Flower</entry>
+    <entry value="6">Penguin Suit</entry>
+    <entry value="7">Propeller Mushroom</entry>
+    <entry value="8">Mini Mushroom</entry>
+    <entry value="9">Hammer Suit</entry>
+    <entry value="10">10-Coin Item</entry>
+    <entry value="11">No Powerup</entry>
+    <entry value="12">No Powerup</entry>
+    <entry value="13">No Powerup</entry>
+    <entry value="14">No Powerup</entry>
+    <entry value="15">No Powerup</entry>
+  </list>
+  <value nybble="6-7" title="Coin Count" comment="Number of jumping coins (actor 402) spawned when the brick breaks. Supports 00-FF (0-255)."/>
+</sprite>
+
 </sprites>
 <!-- Are we... Victorious? -->

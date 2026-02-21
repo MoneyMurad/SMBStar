@@ -112,6 +112,7 @@ modules:
   - processed/spindrift.yaml
   #- processed/spinplatform.yaml
   - processed/bigblock.yaml
+  - processed/bigBrick.yaml
   - processed/noteblock.yaml
   - processed/painting.yaml
   - processed/clapatrap.yaml
