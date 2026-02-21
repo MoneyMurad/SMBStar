@@ -73,9 +73,14 @@ dActor_c  *daLongBlock_c::build() {
 }
 
 int daLongBlock_c::onCreate() {
+	int theme = (this->settings >> 8) & 0xF; // Nybble 10
+	const char *blockBrres = "g3d/obj_block_long.brres";
+	if (theme == 1)
+		blockBrres = "g3d/obj_block_long_blue.brres";
+
 	allocator.link(-1, GameHeaps[0], 0, 0x20);
 
-	this->resFile.data = getResource("obj_block_long", "g3d/obj_block_long.brres");
+	this->resFile.data = getResource("obj_block_long", blockBrres);
 	nw4r::g3d::ResMdl mdl = this->resFile.GetResMdl("block_long");
 	model.setup(mdl, &allocator, 0x108, 1, 0);
 	
