@@ -21,6 +21,7 @@ class daBigBrick_c : public daEnBlockMain_c {
 	u32 configuredCoinCount;
 	u32 configuredActorId;
 	bool forceItemModeB;
+	bool spawnPowerupForAllPlayersInMP;
 
 	void calledWhenUpMoveExecutes();
 	void calledWhenDownMoveExecutes();
@@ -104,6 +105,7 @@ int daBigBrick_c::onCreate() {
 	this->configuredCoinCount = ((this->settings >> 20) & 0xFF); // Nybbles 6-7
 	this->configuredActorId = ((this->settings >> 4) & 0xFFF); // Nybbles 9-11
 	this->forceItemModeB = ((this->settings >> 19) & 1); // Nybble 8.1
+	this->spawnPowerupForAllPlayersInMP = ((this->settings >> 18) & 1); // Nybble 8.2
 
 	doStateChange(&daBigBrick_c::StateID_Wait);
 	this->onExecute();
@@ -184,17 +186,58 @@ void daBigBrick_c::spawnRewards(bool isDown) {
 	u32 powerup = ingamePowerupIDs[this->configuredPowerup];
 	u32 itemMode = this->forceItemModeB ? 0xB : 0x4;
 	u32 itemSettings = (itemMode << 24) | powerup;
+	u8 activePlayerIDs[4];
+	int activePlayerCount = 0;
 
-	dStageActor_c *item = dStageActor_c::create(EN_ITEM, itemSettings, &itemPos, 0, 0);
-	if (item != 0) {
-		float sx = ((float)GenerateRandomNumber(33) - 16.0f) * 0.08f;
-		float sy;
+	for (int i = 0; i < 4; i++) {
+		if (dAcPy_c::findByID(i) != 0)
+			activePlayerIDs[activePlayerCount++] = i;
+	}
 
-		// Match coin fling range/distribution.
-		if (GenerateRandomNumber(100) < 80)
-			sy = 1.6f + ((float)GenerateRandomNumber(24) * 0.18f);
-		else
-			sy = -0.8f - ((float)GenerateRandomNumber(9) * 0.2f);
+	bool useMultiPowerupSpread = this->spawnPowerupForAllPlayersInMP && (activePlayerCount > 1);
+	int spawnCount = useMultiPowerupSpread ? activePlayerCount : 1;
+
+	for (int i = 0; i < spawnCount; i++) {
+		u32 itemSettingsForSpawn = itemSettings;
+
+		if (useMultiPowerupSpread)
+			itemSettingsForSpawn |= ((activePlayerIDs[i] + 8) << 16);
+
+		dStageActor_c *item = dStageActor_c::create(EN_ITEM, itemSettingsForSpawn, &itemPos, 0, 0);
+		if (item == 0)
+			continue;
+
+		float sx, sy;
+
+		if (!useMultiPowerupSpread) {
+			// Single-item fling matches coin range/distribution.
+			sx = ((float)GenerateRandomNumber(33) - 16.0f) * 0.08f;
+			if (GenerateRandomNumber(100) < 80)
+				sy = 1.6f + ((float)GenerateRandomNumber(24) * 0.18f);
+			else
+				sy = -0.8f - ((float)GenerateRandomNumber(9) * 0.2f);
+		} else {
+			// Multiplayer: wide angle separation so each player's item launches distinctly.
+			if (activePlayerCount == 2) {
+				sx = (i == 0) ? -1.9f : 1.9f;
+				sy = 2.9f;
+			} else if (activePlayerCount == 3) {
+				static const float spreadX[3] = {-1.9f, 0.0f, 1.9f};
+				static const float spreadY[3] = {2.9f, 3.6f, 2.9f};
+				sx = spreadX[i];
+				sy = spreadY[i];
+			} else {
+				static const float spreadX[4] = {-1.9f, -0.65f, 0.65f, 1.9f};
+				static const float spreadY[4] = {2.8f, 3.4f, 3.4f, 2.8f};
+				int idx = (i < 4) ? i : 3;
+				sx = spreadX[idx];
+				sy = spreadY[idx];
+			}
+
+			// Small variance while preserving separation.
+			sx += ((float)GenerateRandomNumber(11) - 5.0f) * 0.04f;
+			sy += ((float)GenerateRandomNumber(7)) * 0.05f;
+		}
 
 		item->pos.z = 100.0f;
 		item->speed.x = sx;

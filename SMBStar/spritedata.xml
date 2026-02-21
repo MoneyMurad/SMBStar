@@ -2905,6 +2905,7 @@
   <value nybble="6-7" title="Coin Count" comment="Number of jumping coins (actor 402) spawned when the brick breaks. Supports 00-FF (0-255)."/>
   <external type="actors" nybble="9-11" title="Actor ID" comment="Actor profile ID to spawn when Powerup is set to Actor. Spawn settings are fixed to 0." requirednybble="5" requiredval="11"/>
   <checkbox nybble="8.1" title="Ignore Tiered Powerup Logic" comment="When enabled, uses EN_ITEM mode B. When disabled, defaults to mode 4."/>
+  <checkbox nybble="8.2" title="Spawn One Powerup Per Player (MP)" comment="When enabled in multiplayer, the brick spawns one powerup per active player with wide launch-angle separation."/>
 </sprite>
 
 </sprites>
