@@ -42,6 +42,7 @@
 			<tileset filename="Pa1_sabaku_chika" name="Soggy Sewers" />
 			<tileset filename="Pa1_suichu_lightblue" name="Underwater (Light Blue)" />
 			<tileset filename="Pa1_suichu_prp" name="Underwater (Purple)" />
+			<tileset filename="Pa1_underground_blue" name="Underground Bricks (Blue)" />
 		</category>
 		<category name="Tower" sorted="true">
 			<tileset filename="Pa1_metaltower" name="Tower (Metal)" />
