@@ -22,6 +22,7 @@ class daLongBlock_c : public daEnBlockMain_c {
 	bool pendingHitState;
 	bool pendingItemSpawn;
 	bool isInvisible;
+	bool forceSinglePowerupInMP;
 	u32 pendingItemSettings;
 	Vec pendingItemPos;
 	int pendingItemSoundId;
@@ -42,6 +43,7 @@ class daLongBlock_c : public daEnBlockMain_c {
 	void calledWhenDownMoveExecutes();
 
 	void spawnContents(bool isDown);
+	void spawnConfiguredItemsForPlayers(Vec spawnPos, u32 baseItemSettings);
 	void spawnPendingItem();
 	void finishHit();
 
@@ -135,6 +137,7 @@ int daLongBlock_c::onCreate() {
 	this->pendingItemSettings = 0;
 	this->pendingItemPos = (Vec){0.0f, 0.0f, 0.0f};
 	this->pendingItemSoundId = 0;
+	this->forceSinglePowerupInMP = ((this->settings >> 18) & 1); // Nybble 8.2
 
 	this->isInvisible = (settings & 0x2000);
 	
@@ -255,8 +258,7 @@ void daLongBlock_c::spawnContents(bool isDown) {
 	
 	/*	Create our actors	*/
 	if (powerup == 0x2) {
-		item = dStageActor_c::create(EN_ITEM, itemSettings, &itemPos, 0, 0);
-		item->pos.z = 100.0f;
+		spawnConfiguredItemsForPlayers(itemPos, itemSettings);
 	} else {
 		pendingItemSpawn = true;
 		pendingItemSettings = itemSettings;
@@ -276,6 +278,68 @@ void daLongBlock_c::spawnContents(bool isDown) {
 		pendingHitState = true;
 }
 
+void daLongBlock_c::spawnConfiguredItemsForPlayers(Vec spawnPos, u32 baseItemSettings) {
+	u8 activePlayerIDs[4];
+	int activePlayerCount = 0;
+	u32 powerupType = (baseItemSettings & 0xFF);
+
+	for (int i = 0; i < 4; i++) {
+		if (dAcPy_c::findByID(i) != 0)
+			activePlayerIDs[activePlayerCount++] = i;
+	}
+
+	bool useMultiPowerupSpread = !this->forceSinglePowerupInMP && (activePlayerCount > 1);
+	int spawnCount = useMultiPowerupSpread ? activePlayerCount : 1;
+
+	for (int i = 0; i < spawnCount; i++) {
+		u32 itemSettingsForSpawn = baseItemSettings;
+
+		if (useMultiPowerupSpread) {
+			// In MP-per-player mode, force EN_ITEM mode B like Big Brick does.
+			itemSettingsForSpawn = (0xB << 24) | powerupType;
+			itemSettingsForSpawn |= ((activePlayerIDs[i] + 8) << 16);
+		}
+
+		dStageActor_c *spawnedItem = dStageActor_c::create(EN_ITEM, itemSettingsForSpawn, &spawnPos, 0, 0);
+		if (spawnedItem == 0)
+			continue;
+
+		spawnedItem->pos.z = 100.0f;
+
+		if (useMultiPowerupSpread) {
+			float sx, sy;
+
+			if (activePlayerCount == 2) {
+				sx = (i == 0) ? -1.9f : 1.9f;
+				sy = 2.9f;
+			} else if (activePlayerCount == 3) {
+				static const float spreadX[3] = {-1.9f, 0.0f, 1.9f};
+				static const float spreadY[3] = {2.9f, 3.6f, 2.9f};
+				sx = spreadX[i];
+				sy = spreadY[i];
+			} else {
+				static const float spreadX[4] = {-1.9f, -0.65f, 0.65f, 1.9f};
+				static const float spreadY[4] = {2.8f, 3.4f, 3.4f, 2.8f};
+				int idx = (i < 4) ? i : 3;
+				sx = spreadX[idx];
+				sy = spreadY[idx];
+			}
+
+			sx += ((float)GenerateRandomNumber(11) - 5.0f) * 0.04f;
+			sy += ((float)GenerateRandomNumber(7)) * 0.05f;
+
+			// Keep MP-spawned items from clipping into the block on their first frame.
+			spawnedItem->pos.x += (sx * 1.2f);
+			spawnedItem->pos.y += 10.0f;
+
+			spawnedItem->speed.x = sx;
+			spawnedItem->speed.y = sy;
+		}
+
+		this->item = spawnedItem;
+	}
+}
+
 void daLongBlock_c::finishHit() {
 	this->pos.y = this->ogPos;
 	
@@ -291,8 +355,7 @@ void daLongBlock_c::spawnPendingItem() {
 	if (!pendingItemSpawn)
 		return;
 
-	item = dStageActor_c::create(EN_ITEM, pendingItemSettings, &pendingItemPos, 0, 0);
-	item->pos.z = 100.0f;
+	spawnConfiguredItemsForPlayers(pendingItemPos, pendingItemSettings);
 
 	if (pendingItemSoundId != 0) {
 		nw4r::snd::SoundHandle handle;

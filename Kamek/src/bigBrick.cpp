@@ -21,7 +21,7 @@ class daBigBrick_c : public daEnBlockMain_c {
 	u32 configuredCoinCount;
 	u32 configuredActorId;
 	bool forceItemModeB;
-	bool spawnPowerupForAllPlayersInMP;
+	bool forceSinglePowerupInMP;
 
 	void calledWhenUpMoveExecutes();
 	void calledWhenDownMoveExecutes();
@@ -105,7 +105,7 @@ int daBigBrick_c::onCreate() {
 	this->configuredCoinCount = ((this->settings >> 20) & 0xFF); // Nybbles 6-7
 	this->configuredActorId = ((this->settings >> 4) & 0xFFF); // Nybbles 9-11
 	this->forceItemModeB = ((this->settings >> 19) & 1); // Nybble 8.1
-	this->spawnPowerupForAllPlayersInMP = ((this->settings >> 18) & 1); // Nybble 8.2
+	this->forceSinglePowerupInMP = ((this->settings >> 18) & 1); // Nybble 8.2
 
 	doStateChange(&daBigBrick_c::StateID_Wait);
 	this->onExecute();
@@ -194,7 +194,7 @@ void daBigBrick_c::spawnRewards(bool isDown) {
 			activePlayerIDs[activePlayerCount++] = i;
 	}
 
-	bool useMultiPowerupSpread = this->spawnPowerupForAllPlayersInMP && (activePlayerCount > 1);
+	bool useMultiPowerupSpread = !this->forceSinglePowerupInMP && (activePlayerCount > 1);
 	int spawnCount = useMultiPowerupSpread ? activePlayerCount : 1;
 
 	for (int i = 0; i < spawnCount; i++) {

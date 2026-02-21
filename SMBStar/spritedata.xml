@@ -2702,6 +2702,7 @@
   
   <sprite id="491" name="Triple ? Block" notes="Long block that gives two coins along with a powerup. From NSMB2. &lt;font color=&quot;orange&quot;&gt;For use with Project Star&lt;/font&gt;">
     <checkbox nybble="9.3" title="Invisible" comment="Invisible triple block akin to its single-block brother."/>
+    <checkbox nybble="8.2" title="Force Single Powerup In MP" comment="Multiplayer default is one powerup per active player. Enable this to force only one powerup total."/>
 
 	 <list nybble="5" title="Contains">
       <entry value="0">Fire Flower</entry>
@@ -2905,7 +2906,7 @@
   <value nybble="6-7" title="Coin Count" comment="Number of jumping coins (actor 402) spawned when the brick breaks. Supports 00-FF (0-255)."/>
   <external type="actors" nybble="9-11" title="Actor ID" comment="Actor profile ID to spawn when Powerup is set to Actor. Spawn settings are fixed to 0." requirednybble="5" requiredval="11"/>
   <checkbox nybble="8.1" title="Ignore Tiered Powerup Logic" comment="When enabled, uses EN_ITEM mode B. When disabled, defaults to mode 4."/>
-  <checkbox nybble="8.2" title="Spawn One Powerup Per Player (MP)" comment="When enabled in multiplayer, the brick spawns one powerup per active player with wide launch-angle separation."/>
+  <checkbox nybble="8.2" title="Force Single Powerup In MP" comment="Multiplayer default is one powerup per active player. Enable this to force only one powerup total."/>
 </sprite>
 
 </sprites>
