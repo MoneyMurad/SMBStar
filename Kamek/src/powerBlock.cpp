@@ -94,8 +94,8 @@ int daPowerBlock_c::onCreate() {
 
 	this->isHit = false;
 	
-    bindAnimChr_and_setUpdateRate("spawn", 1, 0.0, 1.0); 
 	doStateChange(&daPowerBlock_c::StateID_Wait);
+	this->onExecute();
 
 	return true;
 }
