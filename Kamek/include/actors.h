@@ -775,7 +775,7 @@ enum Actors {
 	coinEruption = 768,
 	SpinDrift = 769,
 	SpinPlatform = 770,
-	bigblock = 771,
+	//bigblock = 771,
 	CameraScrollLimiter = 772,
 	noteblock = 773,
 	painting = 774,
@@ -787,7 +787,8 @@ enum Actors {
 	mega = 780,
 	megamario = 781,
 	powerblock = 782,
-	bigbrick = 783
+	snailicorn = 783,
+	bigbrick = 784
 };
 
 struct Actor {

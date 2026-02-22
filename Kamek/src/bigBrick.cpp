@@ -46,7 +46,7 @@ class daBigBrick_c : public daEnBlockMain_c {
 CREATE_STATE(daBigBrick_c, Wait);
 
 const SpriteData BigBrickData = {ProfileId::bigbrick, 8, -0x10, 0, 0, 0x100, 0x100, 0, 0, 0, 0, 0};
-Profile BigBrickProfile(&daBigBrick_c::build, SpriteId::bigbrick, &BigBrickData, ProfileId::bigbrick, ProfileId::bigbrick, "bigBrick", BigBrickArc);
+Profile BigBrickProfile(&daBigBrick_c::build, SpriteId::bigbrick, &BigBrickData, ProfileId::bigbrick, ProfileId::bigbrick, "bigbrick", BigBrickArc);
 
 extern "C" int CheckExistingPowerup(void * Player);
 
