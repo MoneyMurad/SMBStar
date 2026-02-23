@@ -50,11 +50,13 @@ class dSnailicorn_c : public dEn_c {
 	bool CreateIceActors();
 	void _vf5C();
 
+	void collectNearbyPickups();
 	float nearestPlayerDistance();
 
 	bool loaded;
 	
 	public: static dActor_c *build();
+	public: dAcPy_c *daPlayer;
 	
 	USING_STATES(dSnailicorn_c);
 	DECLARE_STATE(Walk);
@@ -79,10 +81,21 @@ dActor_c* dSnailicorn_c::build() {
 extern "C" bool SpawnEffect(const char*, int, Vec*, S16Vec*, Vec*);
 extern "C" void changePosAngle(VEC3 *, S16Vec *, int);
 
+static inline bool isPickup(u16 name) {
+	return (
+		name == EN_COIN || name == EN_EATCOIN || name == AC_BLOCK_COIN || name == EN_COIN_JUGEM || name == EN_COIN_ANGLE ||
+		name == EN_COIN_JUMP || name == EN_COIN_FLOOR || name == EN_COIN_VOLT || name == EN_COIN_WIND ||
+		name == EN_BLUE_COIN || name == EN_COIN_WATER || name == EN_REDCOIN || name == EN_GREENCOIN ||
+		name == EN_JUMPDAI || name == EN_ITEM || name == EN_STAR_COIN
+	);
+}
+
 void dSnailicorn_c::playerCollision(ActivePhysics *apThis, ActivePhysics *apOther)
 {
 	char hitType = usedForDeterminingStatePress_or_playerCollision(this, apThis, apOther, 0);
 	
+	daPlayer = (dAcPy_c*)apOther->owner;
+
 	if(hitType == 1 | hitType == 3)
 	{
 		this->speed.x = (this->direction) ? -3.0 : 3.0;
@@ -108,12 +121,13 @@ void dSnailicorn_c::spriteCollision(ActivePhysics *apThis, ActivePhysics *apOthe
 {
 	u16 name = ((dEn_c*)apOther->owner)->name;
 
-	// Ignore all these
-	if (name == EN_COIN || name == EN_EATCOIN || name == AC_BLOCK_COIN || name == EN_COIN_JUGEM || name == EN_COIN_ANGLE
-		|| name == EN_COIN_JUMP || name == EN_COIN_FLOOR || name == EN_COIN_VOLT || name == EN_COIN_WIND 
-		|| name == EN_BLUE_COIN || name == EN_COIN_WATER || name == EN_REDCOIN || name == EN_GREENCOIN
-		|| name == EN_JUMPDAI || name == EN_ITEM) 
-		{ return; }
+	if (isPickup(name)) {
+		dEn_c* pickup = (dEn_c*)apOther->owner;
+		if (pickup && daPlayer) {
+			pickup->playerCollision(apOther, &daPlayer->aPhysics);
+		}
+		return;
+	}
 	
 	if (acState.getCurrentState() == &StateID_Walk) 
 	{
@@ -149,6 +163,8 @@ bool dSnailicorn_c::collisionCat5_Mario(ActivePhysics *apThis, ActivePhysics *ap
 	//return true;
 }
 bool dSnailicorn_c::collisionCat7_GroundPound(ActivePhysics *apThis, ActivePhysics *apOther) {
+	daPlayer = (dAcPy_c*)apOther->owner;
+
 	this->speed.x = (this->direction) ? -4.0 : 4.0;
     this->max_speed.x = (this->direction) ? -4.0 : 4.0;
         
@@ -371,6 +387,20 @@ int dSnailicorn_c::onCreate()
 	collMgr.init(this, &below, &above, &adjacent);
 	collMgr.calculateBelowCollisionWithSmokeEffect();
 
+	// SIDE SENSOR
+	adjacentSensor.flags =
+		SENSOR_LINE |
+		SENSOR_BREAK_BLOCK |
+		SENSOR_BREAK_BRICK |
+		SENSOR_10000000;
+
+	// Vertical line spanning full body height
+	adjacentSensor.lineA =  0 << 12;
+	adjacentSensor.lineB =  kMegaStandAdjacentHeight << 12;
+
+	// Horizontal offset from center (how far to the side)
+	adjacentSensor.distanceFromCenter = kMegaStandAdjacentOffset << 12; // match xDistToEdge
+	
 	cmgr_returnValue = collMgr.isOnTopOfTile();
 	
 	bindAnimChr_and_setUpdateRate("walk", 1, 0.0, 1.7); 
@@ -398,11 +428,120 @@ int dSnailicorn_c::onExecute() {
 	/*dStateBase_c* currentState = this->acState.getCurrentState();
 	OSReport("Current State: %s\n", currentState->getName());*/
 		
+	if(acState.getCurrentState() == &StateID_Slide)
+		collectNearbyPickups();
+
 	return true;
 }
 
 int dSnailicorn_c::onDelete() {
 	return true;
+}
+
+static inline void awarddaCoins(int playerIndex, int amount) {
+	if (playerIndex < 0 || playerIndex > 3)
+		return;
+
+	Player_Coins[playerIndex] += amount;
+
+	nw4r::snd::SoundHandle handle;
+	if (Player_Coins[playerIndex] > MaxCoins) {
+		PlaySoundWithFunctionB4(SoundRelatedClass, &handle, SE_SYS_100COIN_ONE_UP, 1);
+
+		if (Player_Lives[playerIndex] >= 99)
+			Player_Lives[playerIndex] = 99;
+		else
+			Player_Lives[playerIndex] += 1;
+
+		int difference = Player_Coins[playerIndex] - MaxCoins;
+		Player_Coins[playerIndex] = (difference - 1);
+	}
+
+	PlaySoundWithFunctionB4(SoundRelatedClass, &handle, SE_OBJ_GET_COIN, 1);
+}
+
+void dSnailicorn_c::collectNearbyPickups()
+{
+	if (!daPlayer)
+		return;
+
+	const ActivePhysics::Info &megaInfo = this->aPhysics.info;
+	float megaLeft = this->pos.x + megaInfo.xDistToCenter - megaInfo.xDistToEdge;
+	float megaRight = this->pos.x + megaInfo.xDistToCenter + megaInfo.xDistToEdge;
+	float megaTop = this->pos.y + megaInfo.yDistToCenter + megaInfo.yDistToEdge;
+	float megaBottom = this->pos.y + megaInfo.yDistToCenter - megaInfo.yDistToEdge;
+
+	ActivePhysics *ap = ActivePhysics::globalListHead;
+	while (ap) {
+		dStageActor_c *ac = ap->owner;
+		if (!ac || ac == this) {
+			ap = ap->listPrev;
+			continue;
+		}
+
+		if (!isPickup(ac->name)) {
+			ap = ap->listPrev;
+			continue;
+		}
+
+		const ActivePhysics::Info &info = ap->info;
+		float otherLeft = ac->pos.x + info.xDistToCenter - info.xDistToEdge;
+		float otherRight = ac->pos.x + info.xDistToCenter + info.xDistToEdge;
+		float otherTop = ac->pos.y + info.yDistToCenter + info.yDistToEdge;
+		float otherBottom = ac->pos.y + info.yDistToCenter - info.yDistToEdge;
+
+		if (megaRight < otherLeft || megaLeft > otherRight) {
+			ap = ap->listPrev;
+			continue;
+		}
+		if (megaTop < otherBottom || megaBottom > otherTop) {
+			ap = ap->listPrev;
+			continue;
+		}
+
+		dEn_c *pickup = (dEn_c*)ac;
+		pickup->playerCollision(ap, &daPlayer->aPhysics);
+
+		ap = ap->listPrev;
+	}
+
+	int playerIndex = Player_ID[daPlayer->which_player];
+
+	static const u16 manualCoinNames[] = {
+		EN_COIN, EN_COIN_JUGEM, EN_COIN_JUMP, EN_COIN_FLOOR,
+		EN_COIN_VOLT, EN_COIN_WIND, EN_COIN_WATER, EN_COIN_ANGLE
+	};
+
+	for (int i = 0; i < (int)(sizeof(manualCoinNames) / sizeof(manualCoinNames[0])); i++) {
+		fBase_c *fb = 0;
+		while ((fb = fBase_c::search((Actors)manualCoinNames[i], fb))) {
+			dStageActor_c *ac = (dStageActor_c*)fb;
+			if (!ac || ac == this)
+				continue;
+
+			if (ac->aPhysics.isLinkedIntoList)
+				continue;
+
+			float otherHalfX = (ac->aPhysics.info.xDistToEdge != 0.0f) ? ac->aPhysics.info.xDistToEdge : 8.0f;
+			float otherHalfY = (ac->aPhysics.info.yDistToEdge != 0.0f) ? ac->aPhysics.info.yDistToEdge : 8.0f;
+			otherHalfX *= ac->scale.x;
+			otherHalfY *= ac->scale.y;
+
+			float otherLeft = ac->pos.x - otherHalfX;
+			float otherRight = ac->pos.x + otherHalfX;
+			float otherTop = ac->pos.y + otherHalfY;
+			float otherBottom = ac->pos.y - otherHalfY;
+
+			if (megaRight < otherLeft || megaLeft > otherRight)
+				continue;
+			if (megaTop < otherBottom || megaBottom > otherTop)
+				continue;
+
+			awarddaCoins(playerIndex, 1);
+			SpawnEffect("Wm_ob_coinkira", 0, &ac->pos, &(S16Vec){0,0,0}, &(Vec){1.0, 1.0, 1.0});
+			ac->Delete(1);
+		}
+	}
 }
 
 void dSnailicorn_c::beginState_Walk() 
