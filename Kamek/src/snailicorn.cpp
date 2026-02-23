@@ -120,6 +120,18 @@ void dSnailicorn_c::spriteCollision(ActivePhysics *apThis, ActivePhysics *apOthe
 		pos.x = ((pos.x - ((dEn_c*)apOther->owner)->pos.x) > 0) ? pos.x + 1.5 : pos.x - 1.5;
 		doStateChange(&StateID_Turn); 
 	}
+
+	if (acState.getCurrentState() == &StateID_Slide) 
+	{
+		// Get our enemy
+		dEn_c* enemy = (dEn_c*)apOther->owner;
+		if (!enemy) return;
+
+		dAcPy_c *player = dAcPy_c::findByID(0);
+
+		// Pretend we hit them with mario's star-man
+		enemy->collisionCat3_StarPower(apOther, &player->aPhysics);
+	}
 }
 
 bool dSnailicorn_c::collisionCat14_YoshiFire(ActivePhysics *apThis, ActivePhysics *apOther) {

@@ -192,8 +192,6 @@ void dMegaMario_c::spriteCollision(ActivePhysics *apThis, ActivePhysics *apOther
 {
     u16 name = ((dActor_c*)apOther->owner)->name;
 
-	OSReport("COLLISION with %d\n", ((dActor_c*)apOther->owner)->name);
-
 	if(name == mega || name == bird) return;
 
 	if (isMegaPickup(name)) {
@@ -210,8 +208,6 @@ void dMegaMario_c::spriteCollision(ActivePhysics *apThis, ActivePhysics *apOther
 
 	// Pretend megamario hit them with mario's star-man
 	enemy->collisionCat3_StarPower(apOther, &daPlayer->aPhysics);
-	return;
-
 	return;
 }
 bool dMegaMario_c::collisionCat7_GroundPound(ActivePhysics *apThis, ActivePhysics *apOther) {

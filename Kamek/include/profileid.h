@@ -539,6 +539,7 @@ enum
 	megamario = 514,
 	powerblock = 515,
 	bigbrick = 516,
+	snailicorn = 517,
 
 	Num
 };
@@ -1344,6 +1345,7 @@ enum
 	megamario, //781
 	powerblock, //782
 	bigbrick, //783
+	snailicorn, //784
 
 	Num
 };
