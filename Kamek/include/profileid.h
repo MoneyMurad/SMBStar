@@ -526,7 +526,7 @@ enum
 	coinEruption = 501,
 	SpinDrift = 502,
 	SpinPlatform = 503,
-	//bigblock = 504,
+	bigblock = 504,
 	CameraScrollLimiter = 505,
 	noteblock = 506,
 	painting = 507,
@@ -538,8 +538,7 @@ enum
 	mega = 513,
 	megamario = 514,
 	powerblock = 515,
-	snailicorn = 516,
-	bigbrick = 517,
+	bigbrick = 516,
 
 	Num
 };
@@ -1332,7 +1331,7 @@ enum
 	coinEruption, //768
 	SpinDrift, //769
 	SpinPlatform, //770
-	//bigblock, //771
+	bigblock, //771
 	CameraScrollLimiter,
 	noteblock, //773
 	painting, //774
@@ -1344,8 +1343,7 @@ enum
 	mega, //780
 	megamario, //781
 	powerblock, //782
-	snailicorn, // 783
-	bigbrick, //784
+	bigbrick, //783
 
 	Num
 };

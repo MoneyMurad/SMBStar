@@ -123,6 +123,9 @@ int daPowerBlock_c::onExecute() {
     if(this->isHit)
     {
         if(this->chrAnimation.isAnimationDone()) {
+			static nw4r::snd::StrmSoundHandle breakHandle;
+   		 	PlaySoundWithFunctionB4(SoundRelatedClass, &breakHandle, SFX_POWERBLOCK_BREAK, 1);
+
             Vec spawnPos = this->pos;
             spawnPos.y -= 32.0f;
             dStageActor_c* daShroom = (dStageActor_c*)CreateActor(779, 0, spawnPos, 0, 0);
@@ -177,7 +180,9 @@ void daPowerBlock_c::executeState_Wait() {
 	if (result == 0)
 		return;
 
+	// Effects
     bindAnimChr_and_setUpdateRate("break", 1, 0.0, 1.0);
+
     this->isHit = true;
     
 	if (result == 1) {
