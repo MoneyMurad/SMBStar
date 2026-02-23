@@ -874,9 +874,9 @@ static const float SMB1_MEGA_FAST_FRICTION_THRESHOLD = 2.6f;
 static const float SMB1_MEGA_FAST_JUMP_THRESHOLD = 2.5f;
 static const float SMB1_MEGA_JUMP_SPEED_NORMAL = 9.0f;
 static const float SMB1_MEGA_JUMP_SPEED_FAST = 9.8f;
-static const float SMB1_MEGA_GRAVITY_HELD = 0.18f;
-static const float SMB1_MEGA_GRAVITY_RELEASED = 0.62f;
-static const float SMB1_MEGA_MAX_FALL_SPEED = -8.2f;
+static const float SMB1_MEGA_GRAVITY_HELD = 0.13f;
+static const float SMB1_MEGA_GRAVITY_RELEASED = 0.42f;
+static const float SMB1_MEGA_MAX_FALL_SPEED = -6.2f;
 static const int SMB1_MEGA_RUN_TIMER_FRAMES = 10;
 static const int SMB1_MEGA_JUMP_HOLD_FRAMES = 24;
 static const float SMB1_MEGA_TAP_JUMP_CUT_SPEED = 3.2f;
@@ -1045,10 +1045,10 @@ void daPlBase_c::executeState_MegaMario() {
 		// Preserve jump impulse on the exact takeoff frame.
 		megaMario->max_speed.y = megaMario->speed.y;
 	}
-	else {
+	/*else {
 		megaJumpHoldTimer = 0;
 		megaMario->max_speed.y = 0.0f;
-	}
+	}*/
 
 	if(megaMario->collMgr.outputMaybe & (0x15 << direction))
 	{

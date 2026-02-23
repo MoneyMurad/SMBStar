@@ -237,6 +237,7 @@ int dMegaMushroom_c::onCreate()
 	wasOnGround = collMgr.isOnTopOfTile(); // Initialize based on starting position
 
 	this->y_speed_inc = -0.1875;
+
 	doStateChange(&StateID_Move);
 
     this->onExecute();
@@ -312,6 +313,12 @@ void dMegaMushroom_c::beginState_Move()
 void dMegaMushroom_c::executeState_Move()
 {
 	this->timer += 1.0f;
+
+	if(this->timer == 10)
+	{
+		static nw4r::snd::StrmSoundHandle shroomHandle;
+		PlaySoundWithFunctionB4(SoundRelatedClass, &shroomHandle, SFX_MEGA_SPAWN, 2);
+	}
 
 	const float targetX = (direction) ? -kMegaMushroomWalkSpeed : kMegaMushroomWalkSpeed;
 	if (absf(this->speed.x) > (kMegaMushroomWalkSpeed + 0.01f))

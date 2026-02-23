@@ -21,6 +21,7 @@ const char* SFXNameList [] = {
 	"faceblock_bounce", // 2010
 
 	"powerblock_break", // 2011
+	"mega_spawn",		// 2012
 	
 	NULL
 };
