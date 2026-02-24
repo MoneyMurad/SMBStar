@@ -29,6 +29,7 @@ class dSnailicorn_c : public dEn_c {
 	int texState;
 	int Baseline;
 	u32 cmgr_returnValue;
+	lineSensor_s adjacentSensor;
 	
 	void updateModelMatrices();
 	void bindAnimChr_and_setUpdateRate(const char* name, int unk, float unk2, float rate);
@@ -159,8 +160,7 @@ bool dSnailicorn_c::collisionCat3_StarPower(ActivePhysics *apThis, ActivePhysics
 	return hit;
 }
 bool dSnailicorn_c::collisionCat5_Mario(ActivePhysics *apThis, ActivePhysics *apOther) {
-	this->collisionCat9_RollingObject(apThis, apOther);
-	//return true;
+	return this->collisionCat9_RollingObject(apThis, apOther);
 }
 bool dSnailicorn_c::collisionCat7_GroundPound(ActivePhysics *apThis, ActivePhysics *apOther) {
 	daPlayer = (dAcPy_c*)apOther->owner;
@@ -382,10 +382,6 @@ int dSnailicorn_c::onCreate()
 	// "These structs tell stupid collider what to collide with - these are from koopa troopa" - Very well spoken ~
 	static const lineSensor_s below(-5<<12, 5<<12, 0<<12);
 	static const pointSensor_s above(0<<12, 12<<12);
-	static const lineSensor_s adjacent(6<<12, 9<<12, 6<<12);
-
-	collMgr.init(this, &below, &above, &adjacent);
-	collMgr.calculateBelowCollisionWithSmokeEffect();
 
 	// SIDE SENSOR
 	adjacentSensor.flags =
@@ -400,6 +396,9 @@ int dSnailicorn_c::onCreate()
 
 	// Horizontal offset from center (how far to the side)
 	adjacentSensor.distanceFromCenter = kMegaStandAdjacentOffset << 12; // match xDistToEdge
+
+	collMgr.init(this, &below, &above, &adjacentSensor);
+	collMgr.calculateBelowCollisionWithSmokeEffect();
 	
 	cmgr_returnValue = collMgr.isOnTopOfTile();
 	

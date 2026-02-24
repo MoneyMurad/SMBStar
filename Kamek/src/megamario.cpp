@@ -428,7 +428,7 @@ int dMegaMario_c::onExecute() {
 		doStateChange(&StateID_SpawnScale);
 	}
 
-	if(this->scale.x != 1.5f) return;
+	if(this->scale.x != 1.5f) return true;
 	APDebugDraw();
 
 	if (strcmp(daPlayer->states2.getCurrentState()->getName(),
