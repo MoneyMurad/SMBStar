@@ -165,7 +165,7 @@ bool daSilverStar_c::collisionCat2_IceBall_15_YoshiIce(ActivePhysics *apThis, Ac
 }
 bool daSilverStar_c::collisionCat9_RollingObject(ActivePhysics *apThis, ActivePhysics *apOther) {
 	if(this->collected)
-		return;
+		return true;
 	
 	silverStarsCollected++;
 	

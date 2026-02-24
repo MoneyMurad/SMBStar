@@ -135,8 +135,7 @@ bool dGoombrat_c::collisionCat3_StarPower(ActivePhysics *apThis, ActivePhysics *
 	return hit;
 }
 bool dGoombrat_c::collisionCat5_Mario(ActivePhysics *apThis, ActivePhysics *apOther) {
-	this->collisionCat9_RollingObject(apThis, apOther);
-	//return true;
+	return this->collisionCat9_RollingObject(apThis, apOther);
 }
 
 /*	Ice Physics	*/

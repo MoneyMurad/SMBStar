@@ -194,8 +194,7 @@ bool daMoneyBags_c::collisionCatD_Drill(ActivePhysics *apThis, ActivePhysics *ap
 	return true;
 }
 bool daMoneyBags_c::collisionCat5_Mario(ActivePhysics *apThis, ActivePhysics *apOther) {
-	this->collisionCatD_Drill(apThis, apOther);
-	//return true;
+	return this->collisionCatD_Drill(apThis, apOther);
 }
 
 /*	Ice Physics	*/

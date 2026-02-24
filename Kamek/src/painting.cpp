@@ -208,6 +208,7 @@ int daEnPainting_c::onCreate() {
 	this->texTimer = 0;
 
     doStateChange(&StateID_Wait);
+	return true;
 }
 int daEnPainting_c::onExecute() {
 	acState.execute();

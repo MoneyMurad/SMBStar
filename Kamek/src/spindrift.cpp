@@ -154,6 +154,7 @@ bool daSpinDrift_c::collisionCat14_YoshiFire(ActivePhysics *apThis, ActivePhysic
 bool daSpinDrift_c::collisionCat1_Fireball_E_Explosion(ActivePhysics *apThis, ActivePhysics *apOther) {
     StageE4::instance->spawnCoinJump(pos, 0, 1, 0);
     doStateChange(&StateID_DieSmoke);
+    return true;
 }
 
 //void daSpinDrift_c::bouncePlayerWhenJumpedOn(void *player) {
@@ -168,6 +169,7 @@ float daSpinDrift_c::getNearestPlayerY() {
 			}
 		}
 	}
+	return pos.y;
 }
 
 
