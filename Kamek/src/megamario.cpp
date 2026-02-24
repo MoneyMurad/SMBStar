@@ -859,46 +859,23 @@ void dMegaMario_c::endState_MegaOutro() {
 ////////////////////////////////////////////////////////////////////////////////////
 // PLAYER STATES
 
-static const float SMB1_MEGA_MAX_RUN_SPEED = 3.8f;
-static const float SMB1_MEGA_MAX_WALK_SPEED = 2.25f;
-static const float SMB1_MEGA_ACCEL_RUN = 0.080f;
-static const float SMB1_MEGA_ACCEL_WALK = 0.055f;
-static const float SMB1_MEGA_ACCEL_FAST = 0.072f;
-static const float SMB1_MEGA_ACCEL_REVERSE = 0.160f;
-static const float SMB1_MEGA_AIR_CONTROL_SCALE = 0.85f;
-static const float SMB1_MEGA_FAST_FRICTION_THRESHOLD = 2.6f;
-static const float SMB1_MEGA_FAST_JUMP_THRESHOLD = 2.5f;
-static const float SMB1_MEGA_JUMP_SPEED_NORMAL = 9.0f;
-static const float SMB1_MEGA_JUMP_SPEED_FAST = 9.8f;
-static const float SMB1_MEGA_GRAVITY_HELD = 0.13f;
-static const float SMB1_MEGA_GRAVITY_RELEASED = 0.42f;
-static const float SMB1_MEGA_MAX_FALL_SPEED = -6.2f;
-static const int SMB1_MEGA_RUN_TIMER_FRAMES = 10;
-static const int SMB1_MEGA_JUMP_HOLD_FRAMES = 24;
-static const float SMB1_MEGA_TAP_JUMP_CUT_SPEED = 3.2f;
+#define MAX_MEGA_SPEED 3.0f
+#define SPD_INCREMENT 1.2f
+#define SPD_TURN 0.1f
 
-static inline float megaAbs(float value) {
-	return (value < 0.0f) ? -value : value;
-}
-
-static inline float megaClamp(float value, float minValue, float maxValue) {
-	if (value < minValue)
-		return minValue;
-	if (value > maxValue)
-		return maxValue;
-	return value;
-}
-
-static bool turning;
-static int megaRunTimer;
-static int megaJumpHoldTimer;
+Vec oldPos;
+bool jump;
+bool turning;
+int turnHoldFrames;
+bool jumpCutApplied;
 
 void daPlBase_c::beginState_MegaMario() {
 	this->setFlag(0xBB); // invis
 	//this->useDemoControl();
+	jump = false;
 	turning = false;
-	megaRunTimer = 0;
-	megaJumpHoldTimer = 0;
+	turnHoldFrames = 0;
+	jumpCutApplied = false;
 }
 void daPlBase_c::executeState_MegaMario() {
 	dMegaMario_c* megaMario = (dMegaMario_c*)FindActorByType(mega, 0);
@@ -914,11 +891,20 @@ void daPlBase_c::executeState_MegaMario() {
 		megaMario->updateCrouchCollision(false);
 		return;
 	}
-	
+
 	someFlightRelatedFunction(this); // Handles x movement apparently
 	Remocon* con = GetRemoconMng()->controllers[this->settings % 4];
-	
+
 	bool onGround = megaMario->collMgr.isOnTopOfTile();
+	float accelScaleBase = onGround ? 1.0f : 0.15f;
+	float baseMax = MAX_MEGA_SPEED;
+	float boostMax = MAX_MEGA_SPEED * 1.5f;
+	float targetMax = (con->heldButtons & WPAD_ONE) ? boostMax : baseMax;
+	float currentCap = (megaMario->max_speed.x < 0.0f) ? -megaMario->max_speed.x : megaMario->max_speed.x;
+	if (currentCap == 0.0f)
+		currentCap = baseMax;
+	float speedCap = currentCap + (targetMax - currentCap) * 0.01f;
+
 	bool downHeld = (con->heldButtons & WPAD_DOWN);
 	if (onGround && !downHeld)
 		megaMario->crouchJumping = false;
@@ -926,125 +912,94 @@ void daPlBase_c::executeState_MegaMario() {
 	bool wantsCrouch = (onGround && downHeld) || (!onGround && megaMario->crouchJumping);
 	megaMario->updateCrouchCollision(wantsCrouch);
 
-	int inputDir = 0;
-	u32 lrHeld = con->heldButtons & (WPAD_LEFT | WPAD_RIGHT);
-	if (lrHeld == WPAD_LEFT)
-		inputDir = -1;
-	else if (lrHeld == WPAD_RIGHT)
-		inputDir = 1;
-	if (wantsCrouch && onGround)
-		inputDir = 0;
+	if(!wantsCrouch && (con->heldButtons & WPAD_LEFT)) {
+		float accelScale = accelScaleBase;
 
-	float absSpeed = megaAbs(megaMario->speed.x);
-	float accel = SMB1_MEGA_ACCEL_WALK;
-	float speedCap = SMB1_MEGA_MAX_WALK_SPEED;
-	bool startedJumpThisFrame = false;
-	bool movingWithMomentum = (inputDir != 0) && ((megaMario->speed.x * inputDir) >= 0.0f);
-	bool runHeld = (con->heldButtons & WPAD_ONE);
-
-	if (onGround && runHeld && movingWithMomentum) {
-		megaRunTimer = SMB1_MEGA_RUN_TIMER_FRAMES;
-	}
-	else if (megaRunTimer > 0) {
-		megaRunTimer--;
-	}
-
-	if ((onGround && runHeld && movingWithMomentum) || (megaRunTimer > 0 && movingWithMomentum)) {
-		accel = SMB1_MEGA_ACCEL_RUN;
-		speedCap = SMB1_MEGA_MAX_RUN_SPEED;
-	}
-
-	// Preserve horizontal momentum in air; don't clamp to ground caps mid-jump.
-	if (!onGround && absSpeed > speedCap) {
-		speedCap = absSpeed;
-	}
-
-	if (absSpeed >= SMB1_MEGA_FAST_FRICTION_THRESHOLD) {
-		accel = SMB1_MEGA_ACCEL_FAST;
-	}
-
-	if (inputDir != 0) {
-		float applyAccel = accel;
-		bool reversing = ((megaMario->speed.x * inputDir) < 0.0f);
-
-		if (reversing)
-			applyAccel = SMB1_MEGA_ACCEL_REVERSE;
-		if (!onGround)
-			applyAccel *= SMB1_MEGA_AIR_CONTROL_SCALE;
-
-		megaMario->speed.x += applyAccel * (float)inputDir;
-		megaMario->speed.x = megaClamp(megaMario->speed.x, -speedCap, speedCap);
-		turning = onGround && reversing && (megaAbs(megaMario->speed.x) > 0.08f);
-
-		megaMario->rot.y = (inputDir > 0) ? 0 : 0x8000;
-	}
-	else {
-		float decel = accel;
-		if (!onGround)
-			decel = 0.0f;
-
-		if (megaMario->speed.x > 0.0f) {
-			megaMario->speed.x -= decel;
-			if (megaMario->speed.x < 0.0f)
-				megaMario->speed.x = 0.0f;
-		}
-		else if (megaMario->speed.x < 0.0f) {
-			megaMario->speed.x += decel;
-			if (megaMario->speed.x > 0.0f)
-				megaMario->speed.x = 0.0f;
+		if(megaMario->speed.x >= MAX_MEGA_SPEED) {
+			if (!turning)
+				turnHoldFrames = 8;
+			turning = true;
 		}
 
-		turning = false;
+		if (turning) {
+			if (turnHoldFrames > 0)
+				turnHoldFrames--;
+			else if (megaMario->speed.x <= 0.0f)
+				turning = false;
+			float turnLerp = 0.02f;
+			megaMario->speed.x = megaMario->speed.x + (0.0f - megaMario->speed.x) * turnLerp;
+		} else {
+			float accel = (turning) ? SPD_TURN : SPD_INCREMENT;
+			megaMario->speed.x -= accel * accelScale;
+		}
+		if (!turning) {
+			if (megaMario->speed.x <= -speedCap)
+				megaMario->speed.x = -speedCap;
+			megaMario->max_speed.x = -speedCap;
+		}
+
+		megaMario->rot.y = 0x8000;
 	}
 
-	if (megaMario->speed.x > 0.0f)
-		megaMario->max_speed.x = speedCap;
-	else if (megaMario->speed.x < 0.0f)
-		megaMario->max_speed.x = -speedCap;
-	else
-		megaMario->max_speed.x = 0.0f;
+	if(!wantsCrouch && (con->heldButtons & WPAD_RIGHT)) {
+		float accelScale = accelScaleBase;
 
-	if ((con->nowPressed & WPAD_TWO) && onGround) {
+		if(megaMario->speed.x <= -MAX_MEGA_SPEED) {
+			if (!turning)
+				turnHoldFrames = 8;
+			turning = true;
+		}
+
+		if (turning) {
+			if (turnHoldFrames > 0)
+				turnHoldFrames--;
+			else if (megaMario->speed.x >= 0.0f)
+				turning = false;
+			float turnLerp = 0.02f;
+			megaMario->speed.x = megaMario->speed.x + (0.0f - megaMario->speed.x) * turnLerp;
+		} else {
+			float accel = (turning) ? SPD_TURN : SPD_INCREMENT;
+			megaMario->speed.x += accel * accelScale;
+		}
+		if (!turning) {
+			if (megaMario->speed.x >= speedCap)
+				megaMario->speed.x = speedCap;
+			megaMario->max_speed.x = speedCap;
+		}
+
+		megaMario->rot.y = 0;
+	}
+
+	if(con->nowPressed & WPAD_TWO && onGround)
+	{
 		megaMario->crouchJumping = wantsCrouch;
-
-		float jumpSpeed = (absSpeed >= SMB1_MEGA_FAST_JUMP_THRESHOLD) ? SMB1_MEGA_JUMP_SPEED_FAST : SMB1_MEGA_JUMP_SPEED_NORMAL;
-		megaMario->speed.y = jumpSpeed;
-		megaMario->max_speed.y = jumpSpeed;
+		megaMario->speed.y = 8.5f;
+		megaMario->max_speed.y = 8.5f;
 		megaMario->texState = 0; // set frame to jump
-		megaJumpHoldTimer = SMB1_MEGA_JUMP_HOLD_FRAMES;
-		startedJumpThisFrame = true;
+		jumpCutApplied = false;
 
 		static nw4r::snd::StrmSoundHandle megaJumpHandle;
 		PlaySoundWithFunctionB4(SoundRelatedClass, &megaJumpHandle, SFX_MEGA_JUMP, 1);
 	}
 
-	if (!onGround) {
+	if(!onGround)
+	{
 		bool holdingJump = (con->heldButtons & WPAD_TWO);
-		bool lightGravity = holdingJump && (megaJumpHoldTimer > 0) && (megaMario->speed.y > 0.0f);
-		float gravity = lightGravity ? SMB1_MEGA_GRAVITY_HELD : SMB1_MEGA_GRAVITY_RELEASED;
-
-		// SMB-style jump cut: releasing jump while rising quickly trims jump height.
-		if (!holdingJump && megaMario->speed.y > SMB1_MEGA_TAP_JUMP_CUT_SPEED) {
-			megaMario->speed.y = SMB1_MEGA_TAP_JUMP_CUT_SPEED;
+		if (megaMario->speed.y > 0.0f && !holdingJump && !jumpCutApplied) {
+			if (megaMario->speed.y > 3.5f)
+				megaMario->speed.y = 3.5f;
+			if (megaMario->max_speed.y > 3.5f)
+				megaMario->max_speed.y = 3.5f;
+			jumpCutApplied = true;
 		}
 
-		megaMario->speed.y -= gravity;
-		if (megaMario->speed.y < SMB1_MEGA_MAX_FALL_SPEED)
-			megaMario->speed.y = SMB1_MEGA_MAX_FALL_SPEED;
-
-		megaMario->max_speed.y = megaMario->speed.y;
-
-		if (megaJumpHoldTimer > 0)
-			megaJumpHoldTimer--;
+		megaMario->speed.y -= 0.15f;
+		megaMario->max_speed.y -= 0.35f;
+		if (megaMario->max_speed.y < -7.0f)
+		{
+			megaMario->max_speed.y = -7.5f;
+		}
 	}
-	else if (startedJumpThisFrame) {
-		// Preserve jump impulse on the exact takeoff frame.
-		megaMario->max_speed.y = megaMario->speed.y;
-	}
-	/*else {
-		megaJumpHoldTimer = 0;
-		megaMario->max_speed.y = 0.0f;
-	}*/
 
 	if(megaMario->collMgr.outputMaybe & (0x15 << direction))
 	{
@@ -1052,19 +1007,30 @@ void daPlBase_c::executeState_MegaMario() {
 		megaMario->max_speed.x = 0.0f;
 	}
 
+	if (wantsCrouch || !(con->heldButtons & (WPAD_LEFT | WPAD_RIGHT))) {
+		float lerpFactor = onGround ? 0.08f : 0.03f;
+		float target = 0.0f;
+		megaMario->speed.x = megaMario->speed.x + (target - megaMario->speed.x) * lerpFactor;
+		if (megaMario->speed.x > -0.1f && megaMario->speed.x < 0.1f)
+			megaMario->speed.x = 0.0f;
+	}
+
 	// Movement is handled by the Mega Mario actor's state to avoid double-updating physics.
 
 	// TEXTURE ANIMS FOR MEGA MARIO SPRITE
 	if(wantsCrouch)
 		megaMario->texState = 4;
-	else if(!onGround || megaMario->weJumped || megaMario->speed.y > 0.0f)
+	else if(megaMario->weJumped)
 		megaMario->texState = 0;
 	else if(turning)
 		megaMario->texState = 3;
-	else if(megaAbs(megaMario->speed.x) > 0.03f)
+	else if(megaMario->speed.x != 0)
 		megaMario->texState = 1;
 	else
 		megaMario->texState = 2;
+
+	if(!wantsCrouch && megaMario->speed.y > 0)
+		megaMario->texState = 0;
 }
 void daPlBase_c::endState_MegaMario() {
 }
