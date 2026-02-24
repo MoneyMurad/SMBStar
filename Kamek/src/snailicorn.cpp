@@ -29,6 +29,9 @@ class dSnailicorn_c : public dEn_c {
 	int texState;
 	int Baseline;
 	u32 cmgr_returnValue;
+	bool run;
+	float animSpeed;
+	bool groundPounded;
 	
 	void updateModelMatrices();
 	void bindAnimChr_and_setUpdateRate(const char* name, int unk, float unk2, float rate);
@@ -49,6 +52,9 @@ class dSnailicorn_c : public dEn_c {
 	void _vf14C();
 	bool CreateIceActors();
 	void _vf5C();
+
+	lineSensor_s adjacentSensor;
+	lineSensor_s belowSensor;
 
 	void collectNearbyPickups();
 	float nearestPlayerDistance();
@@ -96,11 +102,16 @@ void dSnailicorn_c::playerCollision(ActivePhysics *apThis, ActivePhysics *apOthe
 	
 	daPlayer = (dAcPy_c*)apOther->owner;
 
+	// figure out which way to slide
+	this->direction = (((dEn_c*)apOther->owner)->pos.x > this->pos.x) ? 1 : 0;
+
 	if(hitType == 1 | hitType == 3)
 	{
 		this->speed.x = (this->direction) ? -3.0 : 3.0;
         this->max_speed.x = (this->direction) ? -3.0 : 3.0;
         
+		this->groundPounded = false;
+
 		doStateChange(&StateID_Slide);
 	}
 	else if(hitType == 0) // Take damage
@@ -163,11 +174,16 @@ bool dSnailicorn_c::collisionCat5_Mario(ActivePhysics *apThis, ActivePhysics *ap
 	//return true;
 }
 bool dSnailicorn_c::collisionCat7_GroundPound(ActivePhysics *apThis, ActivePhysics *apOther) {
+	// figure out which way to slide
+	this->direction = (((dEn_c*)apOther->owner)->pos.x > this->pos.x) ? 1 : 0;
+	
 	daPlayer = (dAcPy_c*)apOther->owner;
 
 	this->speed.x = (this->direction) ? -4.0 : 4.0;
     this->max_speed.x = (this->direction) ? -4.0 : 4.0;
-        
+    
+	this->groundPounded = true;
+
 	doStateChange(&StateID_Slide);
 
 	return true;
@@ -372,6 +388,9 @@ int dSnailicorn_c::onCreate()
 	
 	this->Baseline = this->pos.y;
 	loaded = true;
+	this->run = false;
+	this->animSpeed = 1.7f;
+	this->groundPounded = false;
 	
 	// STOLEN
 	spriteSomeRectX = 28.0f;
@@ -382,27 +401,20 @@ int dSnailicorn_c::onCreate()
 	// "These structs tell stupid collider what to collide with - these are from koopa troopa" - Very well spoken ~
 	static const lineSensor_s below(-5<<12, 5<<12, 0<<12);
 	static const pointSensor_s above(0<<12, 12<<12);
-	static const lineSensor_s adjacent(6<<12, 9<<12, 6<<12);
 
-	collMgr.init(this, &below, &above, &adjacent);
-	collMgr.calculateBelowCollisionWithSmokeEffect();
-
-	// SIDE SENSOR
+	// SIDE SENSOR (member, not local!)
 	adjacentSensor.flags =
 		SENSOR_LINE |
-		SENSOR_BREAK_BLOCK |
-		SENSOR_BREAK_BRICK |
-		SENSOR_10000000;
+		SENSOR_10000000; // breaking enabled dynamically
 
-	// Vertical line spanning full body height
-	adjacentSensor.lineA =  0 << 12;
-	adjacentSensor.lineB =  kMegaStandAdjacentHeight << 12;
+	adjacentSensor.lineA =  10 << 12;
+	adjacentSensor.lineB = 16 << 12; // height of body
+	adjacentSensor.distanceFromCenter = 6 << 12; // side offset
 
-	// Horizontal offset from center (how far to the side)
-	adjacentSensor.distanceFromCenter = kMegaStandAdjacentOffset << 12; // match xDistToEdge
+	collMgr.init(this, &below, &above, &adjacentSensor);
 	
-	cmgr_returnValue = collMgr.isOnTopOfTile();
-	
+	collMgr.calculateBelowCollisionWithSmokeEffect();
+
 	bindAnimChr_and_setUpdateRate("walk", 1, 0.0, 1.7); 
 	doStateChange(&StateID_Walk);
 	
@@ -416,9 +428,6 @@ int dSnailicorn_c::onDraw() {
 }
 
 int dSnailicorn_c::onExecute() {
-	if (nearestPlayerDistance() > 600.0f)
-		return true;
-	
 	acState.execute();
 	updateModelMatrices();
 	bodyModel._vf1C();
@@ -427,9 +436,17 @@ int dSnailicorn_c::onExecute() {
 	
 	/*dStateBase_c* currentState = this->acState.getCurrentState();
 	OSReport("Current State: %s\n", currentState->getName());*/
-		
+	
+	this->animSpeed = (this->run) ? 3.4f : 1.7f;
+
 	if(acState.getCurrentState() == &StateID_Slide)
+	{	
 		collectNearbyPickups();
+	
+		adjacentSensor.flags |= SENSOR_BREAK_BLOCK | SENSOR_BREAK_BRICK;
+	}
+	else
+		adjacentSensor.flags &= ~(SENSOR_BREAK_BLOCK | SENSOR_BREAK_BRICK);
 
 	return true;
 }
@@ -552,6 +569,9 @@ void dSnailicorn_c::beginState_Walk()
 	this->max_speed.x = (direction) ? -0.5f : 0.5f;
 	this->speed.x = (direction) ? -0.5f : 0.5f;
 	
+	this->max_speed.x *= (this->run) ? 1.5 : 1;
+	this->speed.x *= (this->run) ? 1.5 : 1;
+
 	this->max_speed.y = -4.0;
 	this->speed.y = -4.0;
 	this->y_speed_inc = -0.1875;
@@ -560,15 +580,16 @@ void dSnailicorn_c::beginState_Walk()
 /* 		Walk 		*/
 void dSnailicorn_c::executeState_Walk() 
 {
-	bool turn = (calculateTileCollisions());
+	bool turn = (calculateTileCollisions() || (!willWalkOntoSuitableGround(2.5f) && collMgr.isOnTopOfTile()));
 	if(turn) {
+		this->run = false;
 		doStateChange(&StateID_Turn);
 	}
 	
 	if(this->chrAnimation.isAnimationDone())
 		this->chrAnimation.setCurrentFrame(0.0);
 	
-	chrAnimation.setUpdateRate(1.7f);
+	chrAnimation.setUpdateRate(this->animSpeed);
 
     //if(this->nearestPlayerDistance() <= 100.0f)
     //{
@@ -598,7 +619,7 @@ void dSnailicorn_c::executeState_Turn()
 	if(this->chrAnimation.isAnimationDone())
 		this->chrAnimation.setCurrentFrame(0.0);
 	
-	chrAnimation.setUpdateRate(1.7f);
+	chrAnimation.setUpdateRate(this->animSpeed);
 }
 void dSnailicorn_c::endState_Turn()
 {}
@@ -643,6 +664,7 @@ void dSnailicorn_c::endState_Chase()
 /* 		Slide 		*/
 void dSnailicorn_c::beginState_Slide()
 {
+	this->rot.y = (this->direction) ? 0xD800 : 0x2800;
     this->timer = 0;
 }
 void dSnailicorn_c::executeState_Slide()
@@ -650,8 +672,9 @@ void dSnailicorn_c::executeState_Slide()
     if(this->timer > 0)
     {
         this->timer += 1;
+		this->run = true;
 
-        if(this->timer >= 60)
+        if(this->timer >= 30)
             doStateChange(&StateID_Turn);
 
         return;
@@ -664,6 +687,12 @@ void dSnailicorn_c::executeState_Slide()
 	if (hitWall) {
 		this->direction ^= 1;
 		this->speed.x = -this->speed.x;
+	}
+
+	if((!willWalkOntoSuitableGround(2.5f) && collMgr.isOnTopOfTile()))
+	{
+		if(!this->groundPounded && this->speed.x <= 2.5f) // We don't have enough speed to fly off and we were not ground-punded
+			this->speed.x = 0.0f; // So don't fly off the ledge
 	}
 
 	// Apply simple horizontal friction

@@ -392,7 +392,7 @@ int dMegaMario_c::onCreate()
 	collMgr.init(this, &belowSensor, &aboveSensor, &adjacentSensor);
 
 	daPlayer = dAcPy_c::findByID(0);
-	if (daPlayer) {
+	if (daPlayer) { 
 		this->which_player = daPlayer->which_player;
 	}
 	//cmgr_returnValue = collMgr.isOnTopOfTile();
