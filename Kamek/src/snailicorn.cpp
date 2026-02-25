@@ -64,6 +64,20 @@ class dSnailicorn_c : public dEn_c {
 	public: static dActor_c *build();
 	public: dAcPy_c *daPlayer;
 	
+	void addScoreWhenHit(void *other);
+	void spawnHitEffectAtPosition(Vec2 pos);
+	void doSomethingWithHardHitAndSoftHitEffects(Vec pos);
+	void playEnemyDownSound2();
+	void playHpdpSound1(); // plays PLAYER_SE_EMY/GROUP_BOOT/SE_EMY_DOWN_HPDP_S or _H
+	void playEnemyDownSound1();
+	void playEnemyDownComboSound(void *player); // AcPy_c/daPlBase_c?
+	void playHpdpSound2(); // plays PLAYER_SE_EMY/GROUP_BOOT/SE_EMY_DOWN_HPDP_S or _H
+	void _vf260(void *other); // AcPy/PlBase? plays the SE_EMY_FUMU_%d sounds based on some value
+	void _vf264(dStageActor_c *other); // if other is player or yoshi, do Wm_en_hit and a few other things
+	void _vf268(void *other); // AcPy/PlBase? plays the SE_EMY_DOWN_SPIN_%d sounds based on some value
+	void _vf278(void *other); // AcPy/PlBase? plays the SE_EMY_YOSHI_FUMU_%d sounds based on some value
+	void powBlockActivated(bool isNotMPGP);
+
 	USING_STATES(dSnailicorn_c);
 	DECLARE_STATE(Walk);
 	DECLARE_STATE(Turn);
@@ -98,6 +112,8 @@ static inline bool isPickup(u16 name) {
 
 void dSnailicorn_c::playerCollision(ActivePhysics *apThis, ActivePhysics *apOther)
 {
+	apOther->someFlagByte |= 2;
+
 	char hitType = usedForDeterminingStatePress_or_playerCollision(this, apThis, apOther, 0);
 	
 	daPlayer = (dAcPy_c*)apOther->owner;
@@ -107,6 +123,8 @@ void dSnailicorn_c::playerCollision(ActivePhysics *apThis, ActivePhysics *apOthe
 
 	if(hitType == 1 | hitType == 3)
 	{
+		this->counter_504[apOther->owner->which_player] = 0xA;
+
 		this->speed.x = (this->direction) ? -3.0 : 3.0;
         this->max_speed.x = (this->direction) ? -3.0 : 3.0;
         
@@ -119,10 +137,9 @@ void dSnailicorn_c::playerCollision(ActivePhysics *apThis, ActivePhysics *apOthe
 		dEn_c::playerCollision(apThis, apOther);
 		this->_vf220(apOther->owner);
 	}
-	
-	deathInfo.isDead = 0;
-	this->flags_4FC |= (1 << (31 - 7));
-	this->counter_504[apOther->owner->which_player] = 0;
+}
+void dSnailicorn_c::_vf278(void *other) {
+	PlaySound(this, SE_EMY_HANACHAN_STOMP);
 }
 void dSnailicorn_c::yoshiCollision(ActivePhysics *apThis, ActivePhysics *apOther)
 {
@@ -209,7 +226,23 @@ extern "C" int SomeStrangeModification(dStageActor_c* actor);
 extern "C" void DoStuffAndMarkDead(dStageActor_c *actor, Vec vector, float unk);
 extern "C" bool HandlesEdgeTurns(dEn_c* actor);
 extern "C" bool SpawnEffect(const char*, int, Vec*, S16Vec*, Vec*);
-	
+
+void dSnailicorn_c::addScoreWhenHit(void *other) { }
+
+void dSnailicorn_c::spawnHitEffectAtPosition(Vec2 pos) { }
+void dSnailicorn_c::doSomethingWithHardHitAndSoftHitEffects(Vec pos) { }
+void dSnailicorn_c::playEnemyDownSound2() { }
+void dSnailicorn_c::playHpdpSound1() { } // plays PLAYER_SE_EMY/GROUP_BOOT/SE_EMY_DOWN_HPDP_S or _H
+void dSnailicorn_c::playEnemyDownSound1() { }
+void dSnailicorn_c::playEnemyDownComboSound(void *player) { } // AcPy_c/daPlBase_c?
+void dSnailicorn_c::playHpdpSound2() { } // plays PLAYER_SE_EMY/GROUP_BOOT/SE_EMY_DOWN_HPDP_S or _H
+void dSnailicorn_c::_vf260(void *other) { } // AcPy/PlBase? plays the SE_EMY_FUMU_%d sounds based on some value
+void dSnailicorn_c::_vf264(dStageActor_c *other) { } // if other is player or yoshi, do Wm_en_hit and a few other things
+void dSnailicorn_c::_vf268(void *other) { } // AcPy/PlBase? plays the SE_EMY_DOWN_SPIN_%d sounds based on some value
+
+void dSnailicorn_c::powBlockActivated(bool isNotMPGP) {
+}
+
 void dSnailicorn_c::_vf5C() {
     // this is something EVERYONE gets wrong
     // newer does a crappy version of this in a "updateModelMatricies" function
@@ -359,10 +392,10 @@ int dSnailicorn_c::onCreate()
 	HitMeBaby.yDistToEdge = 8.0;
 	
 	HitMeBaby.category1 = 0x3;
-	HitMeBaby.category2 = 0x0;
+	HitMeBaby.category2 = 0x9;
 	HitMeBaby.bitfield1 = 0x4F;
 	HitMeBaby.bitfield2 = 0xFFBAFFFE;
-	HitMeBaby.unkShort1C = 0;
+	HitMeBaby.unkShort1C = 0x20000;
 	HitMeBaby.callback = &dEn_c::collisionCallback;
 	
 	this->aPhysics.initWithStruct(this, &HitMeBaby);

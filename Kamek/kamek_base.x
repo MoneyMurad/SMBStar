@@ -2240,6 +2240,7 @@ SECTIONS {
 
 	/* MEGA TESTS */
 	usedForDeterminingStatePress_or_playerCollision = 0x800964a0;
+	satisfyingPlayerJump = 0x80096ca0;
 	DoStuffAndMarkDead = 0x80097170;
 	SmoothRotation = 0x8015f630;
 	ClassAt1EC_Init = 0x8006D090;
