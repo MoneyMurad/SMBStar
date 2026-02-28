@@ -123,3 +123,4 @@ modules:
   - processed/megamario.yaml
   - processed/powerBlock.yaml
   - processed/snailicorn.yaml
+  - processed/manhole.yaml

@@ -540,6 +540,7 @@ enum
 	powerblock = 515,
 	bigbrick = 516,
 	snailicorn = 517,
+	manholecover = 518,
 
 	Num
 };
@@ -1346,6 +1347,7 @@ enum
 	powerblock, //782
 	bigbrick, //783
 	snailicorn, //784
+	manholecover, //785
 
 	Num
 };
