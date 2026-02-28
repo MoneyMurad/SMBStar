@@ -2909,5 +2909,11 @@
   <checkbox nybble="8.2" title="Force Single Powerup In MP" comment="Multiplayer default is one powerup per active player. Enable this to force only one powerup total."/>
 </sprite>
 
+<sprite id="517" name="Snailicorn" notes="Snail-like enemy that slides when stepped on. From NSMBDS. &lt;font color=&quot;orange&quot;&gt;For use with HORIZON&lt;/font&gt;">
+</sprite>
+
+<sprite id="518" name="Sewer Manhole Cover" notes="Flipable manhole cover that is passable when ground-pounded on, and is semi-solid from below. From NSMBDS. &lt;font color=&quot;orange&quot;&gt;For use with HORIZON&lt;/font&gt;">
+</sprite>
+
 </sprites>
 <!-- Are we... Victorious? -->
