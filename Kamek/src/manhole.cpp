@@ -37,6 +37,9 @@ public:
 	bool collisionCatA_PenguinMario(ActivePhysics *apThis, ActivePhysics *apOther);
 	bool collisionCat5_Mario(ActivePhysics *apThis, ActivePhysics *apOther);
 	bool collisionCat11_PipeCannon(ActivePhysics *apThis, ActivePhysics *apOther);
+	bool collisionCat1_Fireball_E_Explosion(ActivePhysics *apThis, ActivePhysics *apOther);
+	bool collisionCat3_StarPower(ActivePhysics *apThis, ActivePhysics *apOther);
+	bool collisionCat14_YoshiFire(ActivePhysics *apThis, ActivePhysics *apOther);
 
 	mHeapAllocator_c allocator;
 	nw4r::g3d::ResFile resFile;
@@ -104,7 +107,13 @@ int dManholeCover_c::updatePlayersOnBlock() {
             // Slightly wider X range to catch straddling across adjacent tiles
             if(player->pos.x >= pos.x - 14 && player->pos.x <= pos.x + 14) {
                 if(player->pos.y >= pos.y - 5 && player->pos.y <= pos.y + 12) {
-                    anyPlayersGoUp = true;
+					if(player->speed.y < -4.0f)
+					{
+						this->startSpinDown();
+						return 0;
+					}
+					else
+						return 1;
                 }
             }
         }
@@ -234,6 +243,18 @@ bool dManholeCover_c::collisionCat11_PipeCannon(ActivePhysics *apThis, ActivePhy
 	(void)apOther;
 	return false;
 }
+bool dManholeCover_c::collisionCat3_StarPower(ActivePhysics *apThis, ActivePhysics *apOther){
+	return false;
+}
+
+bool dManholeCover_c::collisionCat14_YoshiFire(ActivePhysics *apThis, ActivePhysics *apOther){
+	return false;
+}
+bool dManholeCover_c::collisionCat1_Fireball_E_Explosion(ActivePhysics *apThis, ActivePhysics *apOther) {
+	(void)apThis;
+	(void)apOther;
+	return true;
+}
 
 int dManholeCover_c::onCreate() {
 	this->allocator.link(-1, GameHeaps[0], 0, 0x20);
@@ -254,17 +275,20 @@ int dManholeCover_c::onCreate() {
 	apInfo.yDistToCenter = 8.0f;
 	apInfo.xDistToEdge = 16.0f;
 	apInfo.yDistToEdge = 6.0f;
-	apInfo.category1 = 0x3;
+
+	apInfo.category1 = 0x5;
 	apInfo.category2 = 0x0;
-	apInfo.bitfield1 = 0x6F;
-	apInfo.bitfield2 = 0xffbafffe;
+	apInfo.bitfield1 = 0x4F;
+	apInfo.bitfield2 = 0x200;
+	
 	apInfo.unkShort1C = 0;
 	apInfo.callback = &dEn_c::collisionCallback;
+
 	this->aPhysics.initWithStruct(this, &apInfo);
     this->aPhysics.addToList();
 
 	this->topCollider.init(this,
-		/*xOffset=*/0.0f, /*yOffset=*/1.0f,
+		/*xOffset=*/0.0f, /*yOffset=*/2.0f,
 		/*topYOffset=*/0.0f,
 		/*rightSize=*/16.0f, /*leftSize=*/-16.0f,
 		/*rotation=*/0, /*unk_45=*/1);
