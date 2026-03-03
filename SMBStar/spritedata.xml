@@ -2912,7 +2912,7 @@
 <sprite id="517" name="Snailicorn" notes="Snail-like enemy that slides when stepped on. From NSMBDS. &lt;font color=&quot;orange&quot;&gt;For use with HORIZON&lt;/font&gt;">
 </sprite>
 
-<sprite id="518" name="Sewer Manhole Cover" notes="Flipable manhole cover that is passable when ground-pounded on, and is semi-solid from below. From NSMBDS. &lt;font color=&quot;orange&quot;&gt;For use with HORIZON&lt;/font&gt;">
+<sprite id="518" name="Sewer Manhole Cover" notes="Semi-solid manhole cover that becomes passable when ground-pounded on. From NSMBDS. &lt;font color=&quot;orange&quot;&gt;For use with HORIZON&lt;/font&gt;">
 </sprite>
 
 </sprites>
