@@ -25,6 +25,8 @@ public:
 	void startSpinDown();
 	void startSpinUp();
 
+	int updatePlayersOnBlock();
+
 	void playerCollision(ActivePhysics *apThis, ActivePhysics *apOther);
 	void yoshiCollision(ActivePhysics *apThis, ActivePhysics *apOther);
 	bool collisionCat7_GroundPound(ActivePhysics *apThis, ActivePhysics *apOther);
@@ -94,11 +96,28 @@ void dManholeCover_c::startSpinUp() {
 	this->isAnimating = true;
 }
 
+int dManholeCover_c::updatePlayersOnBlock() {
+    bool anyPlayersGoUp = false;
+    
+    for (int i = 0; i < 4; i++) {
+        if (dAcPy_c *player = dAcPy_c::findByID(i)) {
+            // Slightly wider X range to catch straddling across adjacent tiles
+            if(player->pos.x >= pos.x - 14 && player->pos.x <= pos.x + 14) {
+                if(player->pos.y >= pos.y - 5 && player->pos.y <= pos.y + 12) {
+                    anyPlayersGoUp = true;
+                }
+            }
+        }
+    }
+    
+    return anyPlayersGoUp ? 1 : 0;
+}
+
 void dManholeCover_c::tryTriggerStepAnim() {
 	if (!this->colliderInList || this->isAnimating)
 		return;
 
-	const float left = this->pos.x - 16.0f;
+	/* const float left = this->pos.x - 16.0f;
 	const float right = this->pos.x + 16.0f;
 	const float topY = this->pos.y + 6.0f;
 
@@ -122,7 +141,9 @@ void dManholeCover_c::tryTriggerStepAnim() {
 			isPlayerOnTop = true;
 			break;
 		}
-	}
+	} */
+
+	bool isPlayerOnTop = updatePlayersOnBlock();
 
 	if (isPlayerOnTop && !this->wasPlayerOnTop)
 		this->bindAnimChr_and_setUpdateRate("step", 1.0f);
