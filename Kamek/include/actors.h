@@ -789,7 +789,9 @@ enum Actors {
 	powerblock = 782,
 	bigbrick = 783,
 	snailicorn = 784,
-	manholecover = 785
+	manholecover = 785,
+	pathTileBlockA = 786,
+	pathTileBlockB = 787
 };
 
 struct Actor {

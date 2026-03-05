@@ -541,6 +541,8 @@ enum
 	bigbrick = 516,
 	snailicorn = 517,
 	manholecover = 518,
+	pathTileBlockA = 519,
+	pathTileBlockB = 520,
 
 	Num
 };
@@ -1348,6 +1350,8 @@ enum
 	bigbrick, //783
 	snailicorn, //784
 	manholecover, //785
+	pathTileBlockA, //786
+	pathTileBlockB, //787
 
 	Num
 };

@@ -76,7 +76,7 @@ void dEnPath_c::beginState_Init() {
 	OSReport("WaitForPlayer: %d\n", this->waitForPlayer);
 	
 	speed = (float)(this->settings >> 16 & 0b1111);						    //Bit 29-32
-	currentNodeNum = 0;						//Bit 33-40
+	//currentNodeNum = 0;						//Bit 33-40
 	pathID = this->settings >> 0 & 0b11111111;                        	//Bit 41-48
 	
 	speed /= 6;

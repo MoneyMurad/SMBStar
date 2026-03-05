@@ -119,6 +119,7 @@ void daChengeBlock_c::doStuff(Action action, bool wasCalledOnCreation) {
 				u16 existingTile = pExistingTile ? *pExistingTile : 0;
 
 				dBgGm_c::instance->placeTile(worldX, worldY, currentLayerID, tile);
+				OSReport("TILE: %d\n", tile);
 
 				if (!wasCalledOnCreation) {
 					Vec effectPos;
