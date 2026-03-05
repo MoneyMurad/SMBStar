@@ -62,7 +62,7 @@ int daPathTileBlockA_c::onCreate() {
     TileRenderer::List *list = dBgGm_c::instance->getTileRendererList(0);
     list->add(&movingTile);
 
-    this->currentNodeNum = 1;
+    this->currentNodeNum = (this->settings >> 8 & 0b11111111);
 
     updateMovingTile();
     layStaticTile();
@@ -116,7 +116,7 @@ void daPathTileBlockA_c::layStaticTile() {
 }
 
 int daPathTileBlockB_c::onCreate() {
-    this->currentNodeNum = 0;
+    this->currentNodeNum = (this->settings >> 8 & 0b11111111);
 
     this->movingTile.tileNumber = kPathTileNumber;
     this->scale = (Vec){1.0f, 1.0f, 1.0f};
