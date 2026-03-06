@@ -8,8 +8,16 @@ const char *PathTileBlockBFileList[] = {NULL};
 
 static const u16 kPathTileNumber = 0xD2;
 
+class daPathTileBlockA_c;
+class daPathTileBlockB_c;
+
+static void TileBlockPhysCB1(void *one, dStageActor_c *two) { }
+static void TileBlockPhysCB2(void *one, dStageActor_c *two) { }
+static void TileBlockPhysCB3(void *one, dStageActor_c *two, bool unk) { }
+
 class daPathTileBlockA_c : public dEnPath_c {
     TileRenderer movingTile;
+    Physics physics;
     u16 lastWorldX;
     u16 lastWorldY;
     bool hasLastTile;
@@ -21,12 +29,14 @@ public:
     int onDelete();
     int onExecute();
 
+    void setupCollision();
     void updateMovingTile();
     void layStaticTile();
 };
 
 class daPathTileBlockB_c : public dEnPath_c {
     TileRenderer movingTile;
+    Physics physics;
 
 public:
     static dActor_c* build();
@@ -35,6 +45,7 @@ public:
     int onDelete();
     int onExecute();
 
+    void setupCollision();
     void updateMovingTile();
     void deleteTileIfCovered();
 };
@@ -54,15 +65,35 @@ const SpriteData PathTileBlockBData = {ProfileId::pathTileBlockB, 8, -8, 0, 0, 0
 Profile PathTileBlockAProfile(&daPathTileBlockA_c::build, SpriteId::pathTileBlockA, &PathTileBlockAData, ProfileId::pathTileBlockA, ProfileId::pathTileBlockA, "pathTileBlockA", PathTileBlockAFileList);
 Profile PathTileBlockBProfile(&daPathTileBlockB_c::build, SpriteId::pathTileBlockB, &PathTileBlockBData, ProfileId::pathTileBlockB, ProfileId::pathTileBlockB, "pathTileBlockB", PathTileBlockBFileList);
 
+void daPathTileBlockA_c::setupCollision() {
+    physics.setup(this, -8.0f, 8.0f, 8.0f, -8.0f,
+        (void*)&TileBlockPhysCB1, (void*)&TileBlockPhysCB2, (void*)&TileBlockPhysCB3,
+        1, currentLayerID, 0);
+
+    physics.flagsMaybe = 0x260;
+    physics.addToList();
+}
+
+void daPathTileBlockB_c::setupCollision() {
+    physics.setup(this, -8.0f, 8.0f, 8.0f, -8.0f,
+        (void*)&TileBlockPhysCB1, (void*)&TileBlockPhysCB2, (void*)&TileBlockPhysCB3,
+        1, currentLayerID, 0);
+
+    physics.flagsMaybe = 0x260;
+    physics.addToList();
+}
+
 int daPathTileBlockA_c::onCreate() {
+    this->currentNodeNum = (this->settings >> 8 & 0b11111111);
+
     this->movingTile.tileNumber = kPathTileNumber;
     this->scale = (Vec){1.0f, 1.0f, 1.0f};
     this->hasLastTile = false;
 
+    setupCollision();
+
     TileRenderer::List *list = dBgGm_c::instance->getTileRendererList(0);
     list->add(&movingTile);
-
-    this->currentNodeNum = (this->settings >> 8 & 0b11111111);
 
     updateMovingTile();
     layStaticTile();
@@ -74,11 +105,15 @@ int daPathTileBlockA_c::onCreate() {
 int daPathTileBlockA_c::onDelete() {
     TileRenderer::List *list = dBgGm_c::instance->getTileRendererList(0);
     list->remove(&movingTile);
+
+    physics.removeFromList();
+
     return true;
 }
 
 int daPathTileBlockA_c::onExecute() {
     acState.execute();
+    physics.update();
 
     updateMovingTile();
     layStaticTile();
@@ -117,9 +152,11 @@ void daPathTileBlockA_c::layStaticTile() {
 
 int daPathTileBlockB_c::onCreate() {
     this->currentNodeNum = (this->settings >> 8 & 0b11111111);
-
+    
     this->movingTile.tileNumber = kPathTileNumber;
     this->scale = (Vec){1.0f, 1.0f, 1.0f};
+
+    setupCollision();
 
     TileRenderer::List *list = dBgGm_c::instance->getTileRendererList(0);
     list->add(&movingTile);
@@ -132,11 +169,15 @@ int daPathTileBlockB_c::onCreate() {
 int daPathTileBlockB_c::onDelete() {
     TileRenderer::List *list = dBgGm_c::instance->getTileRendererList(0);
     list->remove(&movingTile);
+
+    physics.removeFromList();
+
     return true;
 }
 
 int daPathTileBlockB_c::onExecute() {
     acState.execute();
+    physics.update();
 
     updateMovingTile();
     deleteTileIfCovered();
