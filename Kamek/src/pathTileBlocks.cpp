@@ -18,6 +18,7 @@ static void TileBlockPhysCB3(void *one, dStageActor_c *two, bool unk) { }
 class daPathTileBlockA_c : public dEnPath_c {
     TileRenderer movingTile;
     Physics physics;
+    u8 groupID;
     u16 lastWorldX;
     u16 lastWorldY;
     bool hasLastTile;
@@ -32,11 +33,20 @@ public:
     void setupCollision();
     void updateMovingTile();
     void layStaticTile();
+
+    u8 getGroupID();
+    bool hasStoppedMoving();
+
+    int type;
+    int getType();
 };
 
 class daPathTileBlockB_c : public dEnPath_c {
     TileRenderer movingTile;
     Physics physics;
+    u8 groupID;
+    u32 linkedBlockAID;
+    bool hasLinkedBlockA;
 
 public:
     static dActor_c* build();
@@ -48,6 +58,10 @@ public:
     void setupCollision();
     void updateMovingTile();
     void deleteTileIfCovered();
+    daPathTileBlockA_c *findLinkedBlockA();
+
+    bool startCountdown;
+    int blocks;
 };
 
 dActor_c* daPathTileBlockA_c::build() {
@@ -64,6 +78,18 @@ const SpriteData PathTileBlockAData = {ProfileId::pathTileBlockA, 8, -8, 0, 0, 0
 const SpriteData PathTileBlockBData = {ProfileId::pathTileBlockB, 8, -8, 0, 0, 0x100, 0x100, 0, 0, 0, 0, 0};
 Profile PathTileBlockAProfile(&daPathTileBlockA_c::build, SpriteId::pathTileBlockA, &PathTileBlockAData, ProfileId::pathTileBlockA, ProfileId::pathTileBlockA, "pathTileBlockA", PathTileBlockAFileList);
 Profile PathTileBlockBProfile(&daPathTileBlockB_c::build, SpriteId::pathTileBlockB, &PathTileBlockBData, ProfileId::pathTileBlockB, ProfileId::pathTileBlockB, "pathTileBlockB", PathTileBlockBFileList);
+
+u8 daPathTileBlockA_c::getGroupID() {
+    return groupID;
+}
+
+int daPathTileBlockA_c::getType() {
+    return type;
+}
+
+bool daPathTileBlockA_c::hasStoppedMoving() {
+    return (acState.getCurrentState() == &dEnPath_c::StateID_Done);
+}
 
 void daPathTileBlockA_c::setupCollision() {
     physics.setup(this, -8.0f, 8.0f, 8.0f, -8.0f,
@@ -90,6 +116,9 @@ int daPathTileBlockA_c::onCreate() {
     this->scale = (Vec){1.0f, 1.0f, 1.0f};
     this->hasLastTile = false;
 
+    this->groupID = this->settings >> 0 & 0b11111111;
+    this->type = ((this->settings >> 28) & 0xF);
+    
     setupCollision();
 
     TileRenderer::List *list = dBgGm_c::instance->getTileRendererList(0);
@@ -114,6 +143,15 @@ int daPathTileBlockA_c::onDelete() {
 int daPathTileBlockA_c::onExecute() {
     acState.execute();
     physics.update();
+
+    if(acState.getCurrentState() == &dEnPath_c::StateID_Done)
+    {   
+        if(this->type == 1)
+        {
+            this->currentNodeNum = 0;
+            doStateChange(&dEnPath_c::StateID_Init);
+        }
+    }
 
     updateMovingTile();
     layStaticTile();
@@ -156,6 +194,11 @@ int daPathTileBlockB_c::onCreate() {
     this->movingTile.tileNumber = kPathTileNumber;
     this->scale = (Vec){1.0f, 1.0f, 1.0f};
 
+    this->groupID = this->settings >> 0 & 0b11111111;
+    this->linkedBlockAID = 0;
+    this->hasLinkedBlockA = false;
+    this->startCountdown = false;
+
     setupCollision();
 
     TileRenderer::List *list = dBgGm_c::instance->getTileRendererList(0);
@@ -165,6 +208,27 @@ int daPathTileBlockB_c::onCreate() {
     doStateChange(&dEnPath_c::StateID_Init);
     return true;
 }
+
+daPathTileBlockA_c *daPathTileBlockB_c::findLinkedBlockA() {
+    fBase_c *search = 0;
+    while ((search = fBase_c::searchByBaseType(0x2, search))) {
+        dStageActor_c *actor = (dStageActor_c*)search;
+
+        if (actor->name != ProfileId::pathTileBlockA)
+            continue;
+
+        daPathTileBlockA_c *candidate = (daPathTileBlockA_c*)actor;
+        if (candidate->getGroupID() != groupID)
+            continue;
+
+        linkedBlockAID = candidate->id;
+        hasLinkedBlockA = true;
+        return candidate;
+    }
+
+    return 0;
+}
+
 
 int daPathTileBlockB_c::onDelete() {
     TileRenderer::List *list = dBgGm_c::instance->getTileRendererList(0);
@@ -176,6 +240,24 @@ int daPathTileBlockB_c::onDelete() {
 }
 
 int daPathTileBlockB_c::onExecute() {
+    daPathTileBlockA_c *linkedA = findLinkedBlockA();
+    if (linkedA && linkedA->hasStoppedMoving()) {
+        if (acState.getCurrentState() != &dEnPath_c::StateID_Done)
+        {
+            if(linkedA->getType() == 0) // stops when moving
+                doStateChange(&dEnPath_c::StateID_Done);
+        }
+    }
+
+    if(linkedA && acState.getCurrentState() == &dEnPath_c::StateID_Done)
+    {
+        if(linkedA->getType() == 1)
+        {
+            this->currentNodeNum = 0;
+            doStateChange(&dEnPath_c::StateID_Init);
+        }
+    }
+
     acState.execute();
     physics.update();
 
@@ -201,7 +283,10 @@ void daPathTileBlockB_c::deleteTileIfCovered() {
         return;
 
     u16 *pExistingTile = dBgGm_c::instance->getPointerToTile(worldX, worldY, currentLayerID);
-    if (pExistingTile && *pExistingTile == kPathTileNumber) {
+    if (pExistingTile /* && *pExistingTile == kPathTileNumber*/) {
         dBgGm_c::instance->placeTile(worldX, worldY, currentLayerID, 0);
     }
+
+    if(this->startCountdown)
+        this->blocks++;  // measures the amount of blocks we are for when we respawn
 }
