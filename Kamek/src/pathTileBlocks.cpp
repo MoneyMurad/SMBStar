@@ -141,6 +141,9 @@ int daPathTileBlockA_c::onDelete() {
 }
 
 int daPathTileBlockA_c::onExecute() {
+    updateMovingTile();
+    layStaticTile();
+
     acState.execute();
     physics.update();
 
@@ -152,9 +155,6 @@ int daPathTileBlockA_c::onExecute() {
             doStateChange(&dEnPath_c::StateID_Init);
         }
     }
-
-    updateMovingTile();
-    layStaticTile();
 
     return true;
 }
@@ -171,8 +171,11 @@ void daPathTileBlockA_c::layStaticTile() {
     float tileCenterX = (float)worldX + 8.0f;
     float tileCenterY = -((float)worldY) - 8.0f;
 
+    float spd = (float)(this->settings >> 16 & 0b1111);
+    float windowOffset = (spd <= 4) ? 0.5f : 1.0f;
+
     // Wait until the actor is centered on the tile
-    if (abs(pos.x - tileCenterX) > 0.5f || abs(pos.y - tileCenterY) > 0.5f)
+    if (abs(pos.x - tileCenterX) > windowOffset || abs(pos.y - tileCenterY) > windowOffset)
         return;
 
     if (hasLastTile && worldX == lastWorldX && worldY == lastWorldY)
@@ -278,8 +281,11 @@ void daPathTileBlockB_c::deleteTileIfCovered() {
 
     float tileCenterX = (float)worldX + 8.0f;
     float tileCenterY = -((float)worldY) - 8.0f;
+    
+    float spd = (float)(this->settings >> 16 & 0b1111);
+    float windowOffset = (spd <= 4) ? 0.5f : 1.0f;
 
-    if (abs(pos.x - tileCenterX) > 0.5f || abs(pos.y - tileCenterY) > 0.5f)
+    if (abs(pos.x - tileCenterX) > windowOffset || abs(pos.y - tileCenterY) > windowOffset)
         return;
 
     u16 *pExistingTile = dBgGm_c::instance->getPointerToTile(worldX, worldY, currentLayerID);

@@ -930,9 +930,10 @@
     <value nybble="11" title="Withstands (Needs Multiple Hits)" comment="This determines the number of hits or ground-pounds needed for the block to break. For this function, a texture will be used that has some odd-looking white numbers on it." advanced="True" advancedcomment="This setting may only apply to the original Giant Breakable Brick Block"/>
   </sprite> <!-- #157: Big Pumpkin -->
 
-<sprite id="166" name="Snake Block (Ice)" asmhacks="True">
+  <sprite id="166" name="Snake Block (Ice)" asmhacks="True">
     <dependency notes="The sprite snaps to the Path Node location. From Node-0 to Node-1, there must be at least as much blocks as the Snake Block length, and it must not be diagonal. Other than that, straight lines and exact 45° angles are recommended, as after each Node, the Snake Block will navigate in a 1-by-1 zigzag until it reaches the height of the next Node before going straight."/>
-    <value nybble="3-4" title="Triggering Event ID" comment="The Snake Block will start to move if this event is triggered. Setting it to 0 results in the Snake Block starting to move when the player steps on it." requirednybble="6.4" requiredval="0" idtype="Triggering Event"/> <!-- Disappears if Autostart is checked -->
+    <value nybble="3-4" title="Triggering Event ID" comment="The Snake Block will start to move if this event is triggered. Setting it to 0 results in the Snake Block starting to move when the player steps on it." requirednybble="6.4" requiredval="0" idtype="Triggering Event"/>
+    <!--  Disappears if Autostart is checked  -->
     <value nybble="11" title="Path ID" idtype="Path"/>
     <value nybble="8-9" title="Starting Node" comment="This determines the Node of the Path that the Snake Block will start moving from."/>
     <list nybble="12" title="Length">
@@ -959,7 +960,7 @@
       <entry value="2">Fast (1.4)</entry>
       <entry value="3">Slow (1.0)</entry>
     </list>
-    <list nybble="5" title="End Animation" comment="This determines what the Snake Block will do when it reaches the final Node of the Path. Values higher than 3 cause a crash." comment2="If &quot;Loops&quot; in the paths settings, then this value not be used and the snakeblock will loop instead.">
+    <list nybble="5" title="End Animation" comment="This determines what the Snake Block will do when it reaches the final Node of the Path. Values higher than 3 cause a crash." comment2="If 'Loops' in the paths settings, then this value not be used and the snakeblock will loop instead.">
       <entry value="0">Stop</entry>
       <entry value="1">Fall Straight Through Last Node</entry>
       <entry value="2">Stop, Fall Piece by Piece</entry>
@@ -967,7 +968,7 @@
     </list>
     <checkbox nybble="6.4" title="Autostart" comment="If this box is checked, the snake block will start moving as soon as it is loaded."/>
     <checkbox nybble="6.3" title="No SFX" comment="If this box is checked, the snake block won't make any noise."/>
-  </sprite> <!-- #166: Snake Block (Ice) -->
+  </sprite>
 
   <sprite id="167" name="Big Shy Guy" notes="">
     <list nybble="5" title="Size" comment="Sizes share no functional difference. This is separate from SizeHacks.">
@@ -2706,22 +2707,22 @@
 
 	 <list nybble="5" title="Contains">
       <entry value="0">Fire Flower</entry>
-	  <entry value="1">Star</entry>
-	  <entry value="2">Coin</entry>
-	  <entry value="3">1-UP</entry>
-	  <entry value="4">Fire Flower (Always)</entry>
-	  <entry value="5">Ice Flower</entry>
-	  <entry value="6">Penguin Suit</entry>
-	  <entry value="7">Propeller Mushroom</entry>
-	  <entry value="8">Mini Mushroom</entry>
-	  <entry value="10">10 Coins</entry>
-	  <entry value="11">50 Coin</entry>
-	  <entry value="12">100 Coin</entry>
+      <entry value="1">Star</entry>
+      <entry value="2">Coin</entry>
+      <entry value="3">1-UP</entry>
+      <entry value="4">Fire Flower (Always)</entry>
+      <entry value="5">Ice Flower</entry>
+      <entry value="6">Penguin Suit</entry>
+      <entry value="7">Propeller Mushroom</entry>
+      <entry value="8">Mini Mushroom</entry>
+      <entry value="10">10 Coins</entry>
+      <entry value="11">50 Coin</entry>
+      <entry value="12">100 Coin</entry>
+      </list>
+    <list nybble="10" title="Theme">
+      <entry value="0">Overworld Day</entry>
+      <entry value="1">Underground Blue</entry>
     </list>
-	<list nybble="10" title="Theme">
-		<entry value="0">Overworld Day</entry>
-		<entry value="1">Underground Blue</entry>
-	</list>
   </sprite>
   
   <sprite id="492" name="Player ? Block" notes="Player specific ? block that only certain characters can hit. &lt;font color=&quot;orange&quot;&gt;For use with Project Star&lt;/font&gt;">
@@ -2913,6 +2914,22 @@
 </sprite>
 
 <sprite id="518" name="Sewer Manhole Cover" notes="Semi-solid manhole cover that becomes passable when ground-pounded on. From NSMBDS. &lt;font color=&quot;orange&quot;&gt;For use with HORIZON&lt;/font&gt;">
+</sprite>
+
+<sprite id="519" name="Snakeblock Front" notes="Front piece of the custom snake block. Reveals tiles as it moves upon a set path. Automatically links itself with any rear snakeblock piece (520) that is on the same path.">
+  <value nybble="11-12" title="Path ID" idtype="Path"/>
+  <value nybble="9-10" title="Starting Node" comment="Must be at or after the rear snakeblock piece"/>
+  <value nybble="8" title="Speed"/>
+  <list nybble="5" title="End Behavior" comment="What the snakeblock will do when the front piece reaches the end of the path.">
+    <entry value="0">Stops moving</entry>
+    <entry value="1">Warps to beginning node</entry>
+  </list>
+</sprite>
+
+<sprite id="520" name="Snakeblock Back" notes="Rear piece of the custom snake block. Deletes tiles as it moves upon a set path.">
+  <value nybble="11-12" title="Path ID" idtype="Path"/>
+  <value nybble="9-10" title="Starting Node" comment="Must be at or before the front snakeblock piece"/>
+  <value nybble="8" title="Speed"/>
 </sprite>
 
 </sprites>
