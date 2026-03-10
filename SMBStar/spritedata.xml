@@ -2916,20 +2916,35 @@
 <sprite id="518" name="Sewer Manhole Cover" notes="Semi-solid manhole cover that becomes passable when ground-pounded on. From NSMBDS. &lt;font color=&quot;orange&quot;&gt;For use with HORIZON&lt;/font&gt;">
 </sprite>
 
-<sprite id="519" name="Snakeblock Front" notes="Front piece of the custom snake block. Reveals tiles as it moves upon a set path. Automatically links itself with any rear snakeblock piece (520) that is on the same path.">
+<sprite id="519" name="Snakeblock Front" notes="Front piece of the custom snake block. Reveals tiles as it moves upon a set path. Automatically links itself with any rear snakeblock piece (520) that is on the same path.\n&lt;font color=&quot;orange&quot;&gt;For use with HORIZON&lt;/font&gt;">
   <value nybble="11-12" title="Path ID" idtype="Path"/>
   <value nybble="9-10" title="Starting Node" comment="Must be at or after the rear snakeblock piece"/>
   <value nybble="8" title="Speed"/>
   <list nybble="5" title="End Behavior" comment="What the snakeblock will do when the front piece reaches the end of the path.">
     <entry value="0">Stops moving</entry>
     <entry value="1">Warps to beginning node</entry>
+    <entry value="2">Unextends</entry>
   </list>
 </sprite>
 
-<sprite id="520" name="Snakeblock Back" notes="Rear piece of the custom snake block. Deletes tiles as it moves upon a set path.">
+<sprite id="520" name="Snakeblock Back" notes="Rear piece of the custom snake block. Deletes tiles as it moves upon a set path.\n&lt;font color=&quot;orange&quot;&gt;For use with HORIZON&lt;/font&gt;">
   <value nybble="11-12" title="Path ID" idtype="Path"/>
   <value nybble="9-10" title="Starting Node" comment="Must be at or before the front snakeblock piece"/>
   <value nybble="8" title="Speed"/>
+</sprite>
+
+<sprite id="521" name="Biddy Bud" notes="Rear piece of the custom snake block. Deletes tiles as it moves upon a set path.&lt;font color=&quot;orange&quot;&gt;For use with Project Star.&lt;/font&gt;">
+  <value nybble="11-12" title="Path ID" idtype="Path"/>
+  <value nybble="8" title="Speed"/>
+  <value nybble="9-10" title="Starting Node" comment="Must be at or after the rear snakeblock piece"/>
+  <list nybble="5" title="Color" comment="The color in which the biddy bud will be draped.">
+    <entry value="0">Red</entry>
+    <entry value="1">Green</entry>
+    <entry value="2">Blue</entry>
+    <entry value="3">Pink</entry>
+  </list>
+  <!--checkbox nybble="6" title="Loops backwards" comment="If checked, the biddy bud will go backwards along the set path when it reaches the end."/>
+  !-->
 </sprite>
 
 </sprites>

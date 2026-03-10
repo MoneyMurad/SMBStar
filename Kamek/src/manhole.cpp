@@ -106,7 +106,7 @@ int dManholeCover_c::updatePlayersOnBlock() {
         if (dAcPy_c *player = dAcPy_c::findByID(i)) {
             // Slightly wider X range to catch straddling across adjacent tiles
             if(player->pos.x >= pos.x - 14 && player->pos.x <= pos.x + 14) {
-                if(player->pos.y >= pos.y - 5 && player->pos.y <= pos.y + 12) {
+                if(player->pos.y >= pos.y - 5 && player->pos.y <= pos.y + 6) {
 					if(player->speed.y < -4.0f)
 					{
 						this->startSpinDown();

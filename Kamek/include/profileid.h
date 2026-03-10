@@ -543,6 +543,7 @@ enum
 	manholecover = 518,
 	pathTileBlockA = 519,
 	pathTileBlockB = 520,
+	dBiddyBud = 521,
 
 	Num
 };
@@ -1352,6 +1353,7 @@ enum
 	manholecover, //785
 	pathTileBlockA, //786
 	pathTileBlockB, //787
+	dBiddyBud, //788
 
 	Num
 };

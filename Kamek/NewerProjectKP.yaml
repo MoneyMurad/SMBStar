@@ -124,5 +124,5 @@ modules:
   - processed/powerBlock.yaml
   - processed/snailicorn.yaml
   - processed/manhole.yaml
-  
   - processed/pathTileBlocks.yaml
+  - processed/dBiddyBud.yaml

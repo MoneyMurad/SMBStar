@@ -37,6 +37,10 @@ public:
 
 	int stepCount;
 	int stepsDone;
+
+	bool setToGoBack;
+	bool goingBack;
+	
 	float rest;
 
 	u8 playerCollides;
@@ -161,13 +165,32 @@ void dEnPath_c::executeState_FollowPath() {
 				doStateChange(&StateID_Done);
 			}
 
-			currentNodeNum++;
-			currentNode = nextNode;
-			nextNode = &course->railNode[rail->startNode + 1 + currentNodeNum];
+			if(!goingBack)
+			{
+				currentNodeNum++;
+				currentNode = nextNode;
+				nextNode = &course->railNode[rail->startNode + 1 + currentNodeNum];
+			}
+			else
+			{
+				currentNodeNum--;
+                currentNode = nextNode;
+				nextNode = &course->railNode[rail->startNode + currentNodeNum - 1];
+
+				if (currentNodeNum <= 0) {
+                    currentNodeNum = 0;
+                    currentNode = &course->railNode[rail->startNode];
+                    
+					goingBack = false;
+				}
+			}
 
 			if (rail->nodeCount == currentNodeNum + 1) {
 				if (!loop) {
-					doStateChange(&StateID_Done);
+					if(setToGoBack)
+						goingBack = true;
+					else 
+						doStateChange(&StateID_Done);
 				} else {
 					nextNode = &course->railNode[rail->startNode];
 					currentNodeNum = -1;

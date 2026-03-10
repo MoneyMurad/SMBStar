@@ -22,6 +22,7 @@ class daPathTileBlockA_c : public dEnPath_c {
     u16 lastWorldX;
     u16 lastWorldY;
     bool hasLastTile;
+    bool reverseMode;
 
 public:
     static dActor_c* build();
@@ -33,9 +34,12 @@ public:
     void setupCollision();
     void updateMovingTile();
     void layStaticTile();
+    void deleteTileIfCovered();
 
     u8 getGroupID();
     bool hasStoppedMoving();
+    void beginReverseSegment(int fromNodeNum, int toNodeNum);
+    void executeReverseMovement();
 
     int type;
     int getType();
@@ -110,6 +114,8 @@ void daPathTileBlockB_c::setupCollision() {
 }
 
 int daPathTileBlockA_c::onCreate() {
+    this->reverseMode = false;
+    
     this->currentNodeNum = (this->settings >> 8 & 0b11111111);
 
     this->movingTile.tileNumber = kPathTileNumber;
@@ -142,14 +148,28 @@ int daPathTileBlockA_c::onDelete() {
 
 int daPathTileBlockA_c::onExecute() {
     updateMovingTile();
-    layStaticTile();
+    
+    if(!reverseMode)
+        layStaticTile();
+    else
+        deleteTileIfCovered();
 
     acState.execute();
+
+    if (type == 2 && acState.getCurrentState() == &dEnPath_c::StateID_Done) {
+        executeReverseMovement();
+    }
+
     physics.update();
 
     if(acState.getCurrentState() == &dEnPath_c::StateID_Done)
     {   
         if(this->type == 1)
+        {
+            this->currentNodeNum = 0;
+            doStateChange(&dEnPath_c::StateID_Init);
+        }
+        else if (this->type == 2 && !this->reverseMode)
         {
             this->currentNodeNum = 0;
             doStateChange(&dEnPath_c::StateID_Init);
@@ -275,6 +295,25 @@ void daPathTileBlockB_c::updateMovingTile() {
     movingTile.setVars(scale.x);
 }
 
+void daPathTileBlockA_c::deleteTileIfCovered() {
+    u16 worldX = ((u16)pos.x) & 0xFFF0;
+    u16 worldY = ((u16)(-pos.y)) & 0xFFF0;
+
+    float tileCenterX = (float)worldX + 8.0f;
+    float tileCenterY = -((float)worldY) - 8.0f;
+    
+    float spd = (float)(this->settings >> 16 & 0b1111);
+    float windowOffset = (spd <= 4) ? 0.5f : 1.0f;
+
+    if (abs(pos.x - tileCenterX) > windowOffset || abs(pos.y - tileCenterY) > windowOffset)
+        return;
+
+    u16 *pExistingTile = dBgGm_c::instance->getPointerToTile(worldX, worldY, currentLayerID);
+    if (pExistingTile /* && *pExistingTile == kPathTileNumber*/) {
+        dBgGm_c::instance->placeTile(worldX, worldY, currentLayerID, 0);
+    }
+}
+
 void daPathTileBlockB_c::deleteTileIfCovered() {
     u16 worldX = ((u16)pos.x) & 0xFFF0;
     u16 worldY = ((u16)(-pos.y)) & 0xFFF0;
@@ -295,4 +334,53 @@ void daPathTileBlockB_c::deleteTileIfCovered() {
 
     if(this->startCountdown)
         this->blocks++;  // measures the amount of blocks we are for when we respawn
+}
+
+void daPathTileBlockA_c::beginReverseSegment(int fromNodeNum, int toNodeNum) {
+    currentNode = &course->railNode[rail->startNode + fromNodeNum];
+    nextNode = &course->railNode[rail->startNode + toNodeNum];
+
+    dx = nextNode->xPos - currentNode->xPos;
+    dy = (-nextNode->yPos) - (-currentNode->yPos);
+
+    float distanceToNext = sqrtf((dx * dx) + (dy * dy));
+    ux = dx / distanceToNext;
+    uy = dy / distanceToNext;
+
+    stepVector.x = ux * speed;
+    stepVector.y = uy * speed;
+
+    rest = 1.0f - getDecimals(distanceToNext / speed);
+    stepCount = floor(distanceToNext / speed);
+    stepsDone = 0;
+
+    pos.x = currentNode->xPos;
+    pos.y = -currentNode->yPos;
+}
+
+void daPathTileBlockA_c::executeReverseMovement() {
+    if (!rail || rail->nodeCount < 2)
+        return;
+
+    if (!reverseMode) {
+        reverseMode = true;
+        currentNodeNum = rail->nodeCount - 1;
+        beginReverseSegment(currentNodeNum, currentNodeNum - 1);
+    }
+
+    if (stepsDone < stepCount) {
+        stepsDone++;
+        pos.x += stepVector.x;
+        pos.y += stepVector.y;
+        return;
+    }
+
+    currentNodeNum--;
+    if (currentNodeNum <= 0) {
+        reverseMode = false;
+        currentNodeNum = 0;
+        return;
+    }
+
+    beginReverseSegment(currentNodeNum, currentNodeNum - 1);
 }

@@ -791,7 +791,8 @@ enum Actors {
 	snailicorn = 784,
 	manholecover = 785,
 	pathTileBlockA = 786,
-	pathTileBlockB = 787
+	pathTileBlockB = 787,
+	dBiddyBud = 788
 };
 
 struct Actor {
