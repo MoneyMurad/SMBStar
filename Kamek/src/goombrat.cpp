@@ -186,7 +186,7 @@ void dGoombrat_c::_vf5C() {
 
 bool dGoombrat_c::CreateIceActors()
 {
-	struct DoSomethingCool my_struct = { 0, this->pos, {1.5, 1.5, 1.5}, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 };
+	struct DoSomethingCool my_struct = { 0, this->pos, {1.0, 1.0, 1.0}, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 };
 	this->frzMgr.Create_ICEACTORs( (void*)&my_struct, 1 );
 	__destroy_arr( (void*)&my_struct, sub_80024C20, 0x3C, 1 );
 	chrAnimation.setUpdateRate(0.0f);

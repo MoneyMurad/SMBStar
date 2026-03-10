@@ -56,6 +56,10 @@ public:
 	bool collisionCat13_Hammer(ActivePhysics *apThis, ActivePhysics *apOther);
 	bool collisionCat14_YoshiFire(ActivePhysics *apThis, ActivePhysics *apOther);
 
+	void _vf148();
+	void _vf14C();
+	bool CreateIceActors();
+
 	USING_STATES(dBiddyBud_c);
 	DECLARE_STATE(Die);
 };
@@ -234,6 +238,26 @@ void dBiddyBud_c::updateModelMatrices() {
 	bodyModel.setDrawMatrix(matrix);
 	bodyModel.setScale(&scale);
 	bodyModel.calcWorld(false);
+}
+
+/*	Ice Physics	*/
+void dBiddyBud_c::_vf148()
+{
+	dEn_c::_vf148();
+	doStateChange(&StateID_Die);
+}
+void dBiddyBud_c::_vf14C()
+{
+	dEn_c::_vf14C();
+	doStateChange(&StateID_Die);
+}
+bool dBiddyBud_c::CreateIceActors()
+{
+	struct DoSomethingCool my_struct = { 0, this->pos, {1.0, 0.8, 1.0}, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 };
+	this->frzMgr.Create_ICEACTORs( (void*)&my_struct, 1 );
+	__destroy_arr( (void*)&my_struct, sub_80024C20, 0x3C, 1 );
+	chrAnimation.setUpdateRate(0.0f);
+	return true;
 }
 
 int dBiddyBud_c::onCreate() {
