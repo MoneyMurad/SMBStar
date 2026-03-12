@@ -5,7 +5,7 @@
 #include <profile.h>
 #include "boss.h"
 
-const char* SCileList[] = {"kakibo", NULL};
+const char* SCileList[] = {"snailicorn", NULL};
 
 class dSnailicorn_c : public dEn_c {
 	int onCreate();
@@ -45,6 +45,8 @@ class dSnailicorn_c : public dEn_c {
 	bool collisionCat5_Mario(ActivePhysics *apThis, ActivePhysics *apOther); 
 	bool collisionCat14_YoshiFire(ActivePhysics *apThis, ActivePhysics *apOther);
     bool collisionCat7_GroundPound(ActivePhysics *apThis, ActivePhysics *apOther);
+	bool collisionCat1_Fireball_E_Explosion(ActivePhysics *apThis, ActivePhysics *apOther);
+	bool collisionCat2_IceBall_15_YoshiIce(ActivePhysics *apThis, ActivePhysics *apOther);
 	
 	bool calculateTileCollisions();
 	bool willWalkOntoSuitableGround(float delta = 2.5);
@@ -177,8 +179,7 @@ void dSnailicorn_c::spriteCollision(ActivePhysics *apThis, ActivePhysics *apOthe
 }
 
 bool dSnailicorn_c::collisionCat14_YoshiFire(ActivePhysics *apThis, ActivePhysics *apOther) {
-    
-	return true;
+    return BigHanaFireball(this, apThis, apOther);
 }
 bool dSnailicorn_c::collisionCat3_StarPower(ActivePhysics *apThis, ActivePhysics *apOther) {
 	bool hit = dEn_c::collisionCat3_StarPower(apThis, apOther);
@@ -205,6 +206,15 @@ bool dSnailicorn_c::collisionCat7_GroundPound(ActivePhysics *apThis, ActivePhysi
 
 	return true;
 }
+bool dSnailicorn_c::collisionCat1_Fireball_E_Explosion(ActivePhysics *apThis, ActivePhysics *apOther) {
+	return BigHanaFireball(this, apThis, apOther);
+}
+bool dSnailicorn_c::collisionCat2_IceBall_15_YoshiIce(ActivePhysics *apThis, ActivePhysics *apOther) {
+	return BigHanaIceball(this, apThis, apOther);
+}
+
+extern "C" bool BigHanaFireball(dEn_c* t, ActivePhysics *apThis, ActivePhysics *apOther);
+extern "C" bool BigHanaIceball(dEn_c* t, ActivePhysics *apThis, ActivePhysics *apOther);
 
 /*	Ice Physics	*/
 void dSnailicorn_c::_vf148()
@@ -352,44 +362,31 @@ void dSnailicorn_c::bindAnimChr_and_setUpdateRate(const char* name, int unk, flo
 	this->chrAnimation.setUpdateRate(rate);
 }
 
-void dSnailicorn_c::texPat_bindAnimChr_and_setUpdateRate(const char* name) {
-	this->anmPat = this->resFile.GetResAnmTexPat(name);
-	this->patAnimation.bindEntry(&this->bodyModel, &anmPat, 0, 1);
-	this->bodyModel.bindAnim(&this->patAnimation);
-}
-
 int dSnailicorn_c::onCreate()
 {
 	allocator.link(-1, GameHeaps[0], 0, 0x20);
 	
-	this->resFile.data = getResource("kakibo", "g3d/kakibo.brres");
-	nw4r::g3d::ResMdl mdl = this->resFile.GetResMdl("kakibo");
+	this->resFile.data = getResource("snailicorn", "g3d/snailicorn.brres");
+	nw4r::g3d::ResMdl mdl = this->resFile.GetResMdl("snailicorn");
 	bodyModel.setup(mdl, &allocator, 0x227, 1, 0);
 
 	SetupTextures_Enemy(&bodyModel, 0);
 
-	this->anmFile.data = getResource("kakibo", "g3d/kakibo.brres");
+	this->anmFile.data = getResource("snailicorn", "g3d/snailicorn.brres");
 	nw4r::g3d::ResAnmChr anmChr = this->anmFile.GetResAnmChr("walk");
 	this->chrAnimation.setup(mdl, anmChr, &this->allocator, 0);
-	
-	this->anmPat = this->resFile.GetResAnmTexPat("walk");
-	this->patAnimation.setup(mdl, anmPat, &this->allocator, 0, 1);
-	this->patAnimation.bindEntry(&this->bodyModel, &anmPat, 0, 1);
-	this->patAnimation.setFrameForEntry(0, 0);
-	this->patAnimation.setUpdateRateForEntry(0.0f, 0);
-	this->bodyModel.bindAnim(&this->patAnimation);
 	
 	allocator.unlink();
 	
 	ActivePhysics::Info HitMeBaby;
 	
 	// Dist from center
-	HitMeBaby.xDistToCenter = 0.0;
-	HitMeBaby.yDistToCenter = 8.0;
+	HitMeBaby.xDistToCenter = 6.0;
+	HitMeBaby.yDistToCenter = 20.0;
 	
 	// Size
-	HitMeBaby.xDistToEdge = 8.0;
-	HitMeBaby.yDistToEdge = 8.0;
+	HitMeBaby.xDistToEdge = 16.0;
+	HitMeBaby.yDistToEdge = 18.0;
 	
 	HitMeBaby.category1 = 0x3;
 	HitMeBaby.category2 = 0x9;
@@ -401,6 +398,8 @@ int dSnailicorn_c::onCreate()
 	this->aPhysics.initWithStruct(this, &HitMeBaby);
 	this->aPhysics.addToList();
 	
+	this->scale = (Vec){0.65f, 0.65f, 0.65f};
+
 	pos_delta2.x = 0.0;
     pos_delta2.y = 8.0;
     pos_delta2.z = 0.0;
@@ -441,7 +440,7 @@ int dSnailicorn_c::onCreate()
 		SENSOR_10000000; // breaking enabled dynamically
 
 	adjacentSensor.lineA =  10 << 12;
-	adjacentSensor.lineB = 16 << 12; // height of body
+	adjacentSensor.lineB = 20 << 12; // height of body
 	adjacentSensor.distanceFromCenter = 6 << 12; // side offset
 
 	collMgr.init(this, &below, &above, &adjacentSensor);
@@ -602,8 +601,8 @@ void dSnailicorn_c::beginState_Walk()
 	this->max_speed.x = (direction) ? -0.5f : 0.5f;
 	this->speed.x = (direction) ? -0.5f : 0.5f;
 	
-	this->max_speed.x *= (this->run) ? 1.5 : 1;
-	this->speed.x *= (this->run) ? 1.5 : 1;
+	this->max_speed.x *= (this->run) ? 2 : 1;
+	this->speed.x *= (this->run) ? 2 : 1;
 
 	this->max_speed.y = -4.0;
 	this->speed.y = -4.0;
@@ -616,13 +615,12 @@ void dSnailicorn_c::executeState_Walk()
 	bool turn = (calculateTileCollisions() || (!willWalkOntoSuitableGround(2.5f) && collMgr.isOnTopOfTile()));
 	if(turn) {
 		this->run = false;
+		this->bindAnimChr_and_setUpdateRate("walk", 1, 0.0f, 1.0f);
 		doStateChange(&StateID_Turn);
 	}
 	
 	if(this->chrAnimation.isAnimationDone())
 		this->chrAnimation.setCurrentFrame(0.0);
-	
-	chrAnimation.setUpdateRate(this->animSpeed);
 
     //if(this->nearestPlayerDistance() <= 100.0f)
     //{
@@ -651,8 +649,6 @@ void dSnailicorn_c::executeState_Turn()
 	
 	if(this->chrAnimation.isAnimationDone())
 		this->chrAnimation.setCurrentFrame(0.0);
-	
-	chrAnimation.setUpdateRate(this->animSpeed);
 }
 void dSnailicorn_c::endState_Turn()
 {}
@@ -688,8 +684,6 @@ void dSnailicorn_c::executeState_Chase()
 
 	if(this->chrAnimation.isAnimationDone())
 		this->chrAnimation.setCurrentFrame(0.0);
-	
-	chrAnimation.setUpdateRate(1.7f);
 }
 void dSnailicorn_c::endState_Chase() 
 {}
@@ -699,6 +693,8 @@ void dSnailicorn_c::beginState_Slide()
 {
 	this->rot.y = (this->direction) ? 0xD800 : 0x2800;
     this->timer = 0;
+
+	this->bindAnimChr_and_setUpdateRate("hit", 1, 0.0f, 1.0f);
 }
 void dSnailicorn_c::executeState_Slide()
 {
@@ -707,8 +703,11 @@ void dSnailicorn_c::executeState_Slide()
         this->timer += 1;
 		this->run = true;
 
-        if(this->timer >= 30)
-            doStateChange(&StateID_Turn);
+        if(this->timer >= 60)
+        {
+			this->bindAnimChr_and_setUpdateRate("run", 1, 0.0f, 1.0f);
+			doStateChange(&StateID_Turn);
+		}
 
         return;
     }

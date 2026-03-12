@@ -130,7 +130,7 @@ int daVanishPlatform_c::onCreate()
 	this->initialPosx = this->pos.x;
 	this->initialPosy = this->pos.y;
 	this->initialPosz = this->pos.z;
-	
+	currentNodeNum = 0;
 	this->invisible = true;
 	this->weAreMoving = false;
 	this->dispTimer = 61;

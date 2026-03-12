@@ -30,16 +30,47 @@ class APDebugDrawer : public m3d::proc_c {
 		void drawXlu();
 };
 
-
 static APDebugDrawer defaultInstance;
-static bool enableDebugMode = false;
+static bool enableDebugMode = true;
+
+static int downHeldFrames = 0;
+static bool holdToggleLatched = false;
+static const int HoldDownToggleFrames = 300;
+
+static bool isAnyPlayerHoldingDown() {
+	for (int i = 0; i < 4; i++) {
+		if (!Player_Active[i])
+			continue;
+
+		dAcPy_c *player = dAcPy_c::findByID(i);
+		if (player && player->input.getHeldDown())
+			return true;
+	}
+
+	return false;
+}
+
+static void updateDebugToggleFromHoldDown() {
+	if (isAnyPlayerHoldingDown()) {
+		downHeldFrames++;
+
+		if (!holdToggleLatched && downHeldFrames >= HoldDownToggleFrames) {
+			enableDebugMode = !enableDebugMode;
+			holdToggleLatched = true;
+		}
+	} else {
+		downHeldFrames = 0;
+		holdToggleLatched = false;
+	}
+}
 
 int APDebugDraw() {
+	// updateDebugToggleFromHoldDown();
+
 	if (enableDebugMode)
 		defaultInstance.drawMe();
 	return 1;
 }
-
 
 APDebugDrawer::APDebugDrawer() {
 	amISetUp = false;
