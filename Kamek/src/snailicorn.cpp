@@ -66,6 +66,8 @@ class dSnailicorn_c : public dEn_c {
 	public: static dActor_c *build();
 	public: dAcPy_c *daPlayer;
 	
+	void syncHitboxXDistToDirection();
+
 	void addScoreWhenHit(void *other);
 	void spawnHitEffectAtPosition(Vec2 pos);
 	void doSomethingWithHardHitAndSoftHitEffects(Vec pos);
@@ -85,12 +87,14 @@ class dSnailicorn_c : public dEn_c {
 	DECLARE_STATE(Turn);
     DECLARE_STATE(Chase);
 	DECLARE_STATE(Slide);
+	DECLARE_STATE(Jump);
 };
 
 CREATE_STATE(dSnailicorn_c, Walk);
 CREATE_STATE(dSnailicorn_c, Turn);
 CREATE_STATE(dSnailicorn_c, Chase);
 CREATE_STATE(dSnailicorn_c, Slide);
+CREATE_STATE(dSnailicorn_c, Jump);
 
 const SpriteData SnailicornData = {ProfileId::snailicorn, 8, 0, 0, 0, 0x100, 0x100, 0x40, 0x40, 0, 0, 0};
 Profile SnailicornProfile(&dSnailicorn_c::build, SpriteId::snailicorn, &SnailicornData, ProfileId::snailicorn, ProfileId::snailicorn, "snailicorn", SCileList);
@@ -99,6 +103,11 @@ dActor_c* dSnailicorn_c::build() {
 	void *buf = AllocFromGameHeap1(sizeof(dSnailicorn_c));
 	return new(buf) dSnailicorn_c;
 }
+
+void dSnailicorn_c::syncHitboxXDistToDirection() {
+	this->aPhysics.info.xDistToCenter = (this->direction == 0) ? -6.0f : 6.0f;
+}
+
 
 extern "C" bool SpawnEffect(const char*, int, Vec*, S16Vec*, Vec*);
 extern "C" void changePosAngle(VEC3 *, S16Vec *, int);
@@ -159,13 +168,7 @@ void dSnailicorn_c::spriteCollision(ActivePhysics *apThis, ActivePhysics *apOthe
 		return;
 	}
 	
-	if (acState.getCurrentState() == &StateID_Walk) 
-	{
-		pos.x = ((pos.x - ((dEn_c*)apOther->owner)->pos.x) > 0) ? pos.x + 1.5 : pos.x - 1.5;
-		doStateChange(&StateID_Turn); 
-	}
-
-	if (acState.getCurrentState() == &StateID_Slide) 
+	if (acState.getCurrentState() == &StateID_Slide || acState.getCurrentState() == &StateID_Chase) 
 	{
 		// Get our enemy
 		dEn_c* enemy = (dEn_c*)apOther->owner;
@@ -175,7 +178,11 @@ void dSnailicorn_c::spriteCollision(ActivePhysics *apThis, ActivePhysics *apOthe
 
 		// Pretend we hit them with mario's star-man
 		enemy->collisionCat3_StarPower(apOther, &player->aPhysics);
+		return;
 	}
+
+	pos.x = ((pos.x - ((dEn_c*)apOther->owner)->pos.x) > 0) ? pos.x + 1.5 : pos.x - 1.5;
+	doStateChange(&StateID_Turn); 
 }
 
 bool dSnailicorn_c::collisionCat14_YoshiFire(ActivePhysics *apThis, ActivePhysics *apOther) {
@@ -385,20 +392,20 @@ int dSnailicorn_c::onCreate()
 	HitMeBaby.yDistToCenter = 20.0;
 	
 	// Size
-	HitMeBaby.xDistToEdge = 16.0;
-	HitMeBaby.yDistToEdge = 18.0;
+	HitMeBaby.xDistToEdge = 13.0;
+	HitMeBaby.yDistToEdge = 15.0;
 	
 	HitMeBaby.category1 = 0x3;
-	HitMeBaby.category2 = 0x9;
+	HitMeBaby.category2 = 0x0;
 	HitMeBaby.bitfield1 = 0x4F;
 	HitMeBaby.bitfield2 = 0xFFBAFFFE;
-	HitMeBaby.unkShort1C = 0x20000;
+	HitMeBaby.unkShort1C = 0;
 	HitMeBaby.callback = &dEn_c::collisionCallback;
 	
 	this->aPhysics.initWithStruct(this, &HitMeBaby);
 	this->aPhysics.addToList();
 	
-	this->scale = (Vec){0.65f, 0.65f, 0.65f};
+	this->scale = (Vec){0.55f, 0.55f, 0.55f};
 
 	pos_delta2.x = 0.0;
     pos_delta2.y = 8.0;
@@ -463,6 +470,8 @@ int dSnailicorn_c::onExecute() {
 	acState.execute();
 	updateModelMatrices();
 	bodyModel._vf1C();
+
+	this->syncHitboxXDistToDirection();
 	
 	// :)...
 	
@@ -600,13 +609,14 @@ void dSnailicorn_c::beginState_Walk()
 	
 	this->max_speed.x = (direction) ? -0.5f : 0.5f;
 	this->speed.x = (direction) ? -0.5f : 0.5f;
-	
-	this->max_speed.x *= (this->run) ? 2 : 1;
-	this->speed.x *= (this->run) ? 2 : 1;
 
 	this->max_speed.y = -4.0;
 	this->speed.y = -4.0;
 	this->y_speed_inc = -0.1875;
+
+	this->run = false;
+
+	this->bindAnimChr_and_setUpdateRate("walk", 1, 0.0f, 1.0f);
 }
 
 /* 		Walk 		*/
@@ -622,11 +632,15 @@ void dSnailicorn_c::executeState_Walk()
 	if(this->chrAnimation.isAnimationDone())
 		this->chrAnimation.setCurrentFrame(0.0);
 
-    //if(this->nearestPlayerDistance() <= 100.0f)
-    //{
-    //    this->speed.y = 1.0f;
-    //    doStateChange(&StateID_Chase);
-    //}
+	this->timer++;
+
+    if(this->nearestPlayerDistance() <= 50.0f && this->timer >= 60)
+	{
+		this->run = true;
+
+		this->syncHitboxXDistToDirection();
+		doStateChange(&StateID_Jump);
+	}
 }
 void dSnailicorn_c::endState_Walk() 
 {}
@@ -645,7 +659,10 @@ void dSnailicorn_c::executeState_Turn()
 	int weDoneHere = SmoothRotation(&this->rot.y, rotationAmount, 0x150);
 	
 	if(weDoneHere)
-		doStateChange(&StateID_Walk);
+		if(this->run)
+			doStateChange(&StateID_Walk);
+		else
+			doStateChange(&StateID_Chase);
 	
 	if(this->chrAnimation.isAnimationDone())
 		this->chrAnimation.setCurrentFrame(0.0);
@@ -656,31 +673,45 @@ void dSnailicorn_c::endState_Turn()
 /*      Chase       */
 void dSnailicorn_c::beginState_Chase() 
 {
+	this->run = true;
+
 	this->timer = 0;
+	
 	this->rot.y = (direction) ? 0xD800 : 0x2800;
 	
-	this->max_speed.x = (direction) ? -1.0f : 1.0f;
-	this->speed.x = (direction) ? -1.0f : 1.0f;
+	this->max_speed.x = (direction) ? -0.5f : 0.5f;
+	this->speed.x = (direction) ? -0.5f : 0.5f;
 	
+	this->max_speed.x *= 3;
+	this->speed.x *= 3;
+
 	this->max_speed.y = -4.0;
 	this->speed.y = -4.0;
 	this->y_speed_inc = -0.1875;
+
+	this->bindAnimChr_and_setUpdateRate("walk", 1, 0.0f, 2.0f);
 }
 
 void dSnailicorn_c::executeState_Chase() 
 {
 	bool turn = (
                     calculateTileCollisions() || 
-                    (this->direction != dSprite_c__getXDirectionOfFurthestPlayerRelativeToVEC3(this, this->pos))
+					(!willWalkOntoSuitableGround(2.5f) && collMgr.isOnTopOfTile()) //||
+                    /*(this->direction != dSprite_c__getXDirectionOfFurthestPlayerRelativeToVEC3(this, this->pos))*/
                 );
     
-	if(turn) {
-		u16 rotationAmount = (this->direction) ? 0xD800 : 0x2800;
-	    int weDoneHere = SmoothRotation(&this->rot.y, rotationAmount, 0x150);
+	if(turn && this->timer > 5) {
+		doStateChange(&StateID_Turn);
 	}
 	
-    if(this->nearestPlayerDistance() > 100.0f)
-        doStateChange(&StateID_Walk);
+	this->timer++;
+
+    if(this->timer >= 180)
+	{   
+		this->run = false;
+		this->bindAnimChr_and_setUpdateRate("walk", 1, 0.0f, 1.0f);
+		doStateChange(&StateID_Jump);
+	}
 
 	if(this->chrAnimation.isAnimationDone())
 		this->chrAnimation.setCurrentFrame(0.0);
@@ -701,12 +732,23 @@ void dSnailicorn_c::executeState_Slide()
     if(this->timer > 0)
     {
         this->timer += 1;
-		this->run = true;
 
         if(this->timer >= 60)
         {
-			this->bindAnimChr_and_setUpdateRate("run", 1, 0.0f, 1.0f);
-			doStateChange(&StateID_Turn);
+			this->syncHitboxXDistToDirection();
+			
+			if(this->nearestPlayerDistance() <= 50.0f && this->timer >= 60)
+			{
+				this->run = true;
+				this->bindAnimChr_and_setUpdateRate("walk", 1, 0.0f, 2.0f);
+			}
+			else
+			{
+				this->run = false;
+				this->bindAnimChr_and_setUpdateRate("walk", 1, 0.0f, 1.0f);
+			}
+
+			doStateChange(&StateID_Jump);
 		}
 
         return;
@@ -748,15 +790,62 @@ void dSnailicorn_c::executeState_Slide()
 void dSnailicorn_c::endState_Slide()
 {}
 
+/* Jump */
+void dSnailicorn_c::beginState_Jump()
+{
+	this->timer = 0;
+
+	this->rot.y = (direction) ? 0xD800 : 0x2800;
+
+	// little hop
+	this->speed.y = 2.0f;
+	this->max_speed.y = 2.0f;
+
+	this->y_speed_inc = -0.1875f;
+
+	this->max_speed.x = (direction) ? -0.1f : 0.1f;
+	this->speed.x = (direction) ? -0.1f : 0.1f;
+
+	this->bindAnimChr_and_setUpdateRate("walk", 1, 0.0f, 2.0f);
+}
+
+void dSnailicorn_c::executeState_Jump()
+{
+	this->timer++;
+
+	calculateTileCollisions();
+
+	this->speed.y = this->speed.y - 0.3; 
+	this->max_speed.y = this->max_speed.y - 0.3;
+
+	// when we land, start chasing
+	if (collMgr.isOnTopOfTile() && this->timer > 5) {
+		if(this->run)
+			doStateChange(&StateID_Chase);
+		else 
+			doStateChange(&StateID_Walk);
+	}
+
+	if(this->chrAnimation.isAnimationDone())
+		this->chrAnimation.setCurrentFrame(0.0);
+}
+
+void dSnailicorn_c::endState_Jump()
+{
+}
+
 float dSnailicorn_c::nearestPlayerDistance() {
 	float bestSoFar = 10000.0f;
 
 	for (int i = 0; i < 4; i++) {
 		if (dAcPy_c *player = dAcPy_c::findByID(i)) {
 			if (strcmp(player->states2.getCurrentState()->getName(), "dAcPy_c::StateID_Balloon")) {
+				
 				float thisDist = abs(player->pos.x - pos.x);
+
 				if (thisDist < bestSoFar)
-					bestSoFar = thisDist;
+					if(abs(player->pos.y - pos.y) < 25)
+						bestSoFar = thisDist;
 			}
 		}
 	}
