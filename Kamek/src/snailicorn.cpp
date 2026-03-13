@@ -23,6 +23,8 @@ class dSnailicorn_c : public dEn_c {
 	nw4r::g3d::ResAnmTexPat anmPat;
 	m3d::anmTexPat_c patAnimation;
 	
+	ActivePhysics chasePhysics;
+
 	int timer;
 	int walkPatTimer;
 	int lookdownPatTimer;
@@ -62,6 +64,7 @@ class dSnailicorn_c : public dEn_c {
 	float nearestPlayerDistance();
 
 	bool loaded;
+	bool canChase;
 	
 	public: static dActor_c *build();
 	public: dAcPy_c *daPlayer;
@@ -106,6 +109,7 @@ dActor_c* dSnailicorn_c::build() {
 
 void dSnailicorn_c::syncHitboxXDistToDirection() {
 	this->aPhysics.info.xDistToCenter = (this->direction == 0) ? -6.0f : 6.0f;
+	this->chasePhysics.info.xDistToCenter = (this->direction == 0) ? 50.0f : -50.0f;
 }
 
 
@@ -123,6 +127,19 @@ static inline bool isPickup(u16 name) {
 
 void dSnailicorn_c::playerCollision(ActivePhysics *apThis, ActivePhysics *apOther)
 {
+	if (apThis == &this->chasePhysics) 
+	{
+		if(this->canChase && !this->run)
+		{
+			this->run = true;
+
+			this->syncHitboxXDistToDirection();
+			doStateChange(&StateID_Jump);
+		}
+
+		return;
+	}
+	 
 	apOther->someFlagByte |= 2;
 
 	char hitType = usedForDeterminingStatePress_or_playerCollision(this, apThis, apOther, 0);
@@ -154,10 +171,14 @@ void dSnailicorn_c::_vf278(void *other) {
 }
 void dSnailicorn_c::yoshiCollision(ActivePhysics *apThis, ActivePhysics *apOther)
 {
+	if (apThis == &this->chasePhysics) return;
+
 	this->playerCollision(apThis, apOther);
 }
 void dSnailicorn_c::spriteCollision(ActivePhysics *apThis, ActivePhysics *apOther) 
 {
+	if (apThis == &this->chasePhysics) return;
+
 	u16 name = ((dEn_c*)apOther->owner)->name;
 
 	if (isPickup(name)) {
@@ -186,19 +207,27 @@ void dSnailicorn_c::spriteCollision(ActivePhysics *apThis, ActivePhysics *apOthe
 }
 
 bool dSnailicorn_c::collisionCat14_YoshiFire(ActivePhysics *apThis, ActivePhysics *apOther) {
+	if (apThis == &this->chasePhysics) return;
+
     return BigHanaFireball(this, apThis, apOther);
 }
 bool dSnailicorn_c::collisionCat3_StarPower(ActivePhysics *apThis, ActivePhysics *apOther) {
+	if (apThis == &this->chasePhysics) return;
+	
 	bool hit = dEn_c::collisionCat3_StarPower(apThis, apOther);
 	//doStateChange(&StateID_Die);
 	
 	return hit;
 }
 bool dSnailicorn_c::collisionCat5_Mario(ActivePhysics *apThis, ActivePhysics *apOther) {
+	if (apThis == &this->chasePhysics) return;
+	
 	this->collisionCat9_RollingObject(apThis, apOther);
 	//return true;
 }
 bool dSnailicorn_c::collisionCat7_GroundPound(ActivePhysics *apThis, ActivePhysics *apOther) {
+	if (apThis == &this->chasePhysics) return;
+
 	// figure out which way to slide
 	this->direction = (((dEn_c*)apOther->owner)->pos.x > this->pos.x) ? 1 : 0;
 	
@@ -214,9 +243,13 @@ bool dSnailicorn_c::collisionCat7_GroundPound(ActivePhysics *apThis, ActivePhysi
 	return true;
 }
 bool dSnailicorn_c::collisionCat1_Fireball_E_Explosion(ActivePhysics *apThis, ActivePhysics *apOther) {
+	if (apThis == &this->chasePhysics) return;
+
 	return BigHanaFireball(this, apThis, apOther);
 }
 bool dSnailicorn_c::collisionCat2_IceBall_15_YoshiIce(ActivePhysics *apThis, ActivePhysics *apOther) {
+	if (apThis == &this->chasePhysics) return;
+
 	return BigHanaIceball(this, apThis, apOther);
 }
 
@@ -402,8 +435,14 @@ int dSnailicorn_c::onCreate()
 	HitMeBaby.unkShort1C = 0;
 	HitMeBaby.callback = &dEn_c::collisionCallback;
 	
+	ActivePhysics::Info chaseInfo = HitMeBaby;
+	chaseInfo.xDistToEdge = 30;
+	chaseInfo.yDistToEdge = 10;
+
 	this->aPhysics.initWithStruct(this, &HitMeBaby);
 	this->aPhysics.addToList();
+	this->chasePhysics.initWithStruct(this, &chaseInfo);
+	this->chasePhysics.addToList();
 	
 	this->scale = (Vec){0.55f, 0.55f, 0.55f};
 
@@ -615,6 +654,7 @@ void dSnailicorn_c::beginState_Walk()
 	this->y_speed_inc = -0.1875;
 
 	this->run = false;
+	this->canChase = false;
 
 	this->bindAnimChr_and_setUpdateRate("walk", 1, 0.0f, 1.0f);
 }
@@ -634,13 +674,8 @@ void dSnailicorn_c::executeState_Walk()
 
 	this->timer++;
 
-    if(this->nearestPlayerDistance() <= 50.0f && this->timer >= 60)
-	{
-		this->run = true;
-
-		this->syncHitboxXDistToDirection();
-		doStateChange(&StateID_Jump);
-	}
+    if(this->timer >= 60)
+		this->canChase = true;
 }
 void dSnailicorn_c::endState_Walk() 
 {}
@@ -653,16 +688,19 @@ void dSnailicorn_c::beginState_Turn()
 }
 void dSnailicorn_c::executeState_Turn()
 {
+	this->canChase = false;
+	this->run = false;
+
 	collMgr.calculateBelowCollisionWithSmokeEffect();
 
 	u16 rotationAmount = (this->direction) ? 0xD800 : 0x2800;
 	int weDoneHere = SmoothRotation(&this->rot.y, rotationAmount, 0x150);
 	
 	if(weDoneHere)
-		if(this->run)
+		//if(this->run)
 			doStateChange(&StateID_Walk);
-		else
-			doStateChange(&StateID_Chase);
+		//else
+		//	doStateChange(&StateID_Chase);
 	
 	if(this->chrAnimation.isAnimationDone())
 		this->chrAnimation.setCurrentFrame(0.0);
@@ -694,6 +732,8 @@ void dSnailicorn_c::beginState_Chase()
 
 void dSnailicorn_c::executeState_Chase() 
 {
+	this->canChase = false;
+
 	bool turn = (
                     calculateTileCollisions() || 
 					(!willWalkOntoSuitableGround(2.5f) && collMgr.isOnTopOfTile()) //||
@@ -726,9 +766,16 @@ void dSnailicorn_c::beginState_Slide()
     this->timer = 0;
 
 	this->bindAnimChr_and_setUpdateRate("hit", 1, 0.0f, 1.0f);
+
+	this->max_speed.y = -4.0;
+	this->speed.y = -4.0;
+	this->y_speed_inc = -0.1875;
 }
 void dSnailicorn_c::executeState_Slide()
 {
+	this->canChase = false;
+	this->run = false;
+	
     if(this->timer > 0)
     {
         this->timer += 1;
@@ -820,10 +867,10 @@ void dSnailicorn_c::executeState_Jump()
 
 	// when we land, start chasing
 	if (collMgr.isOnTopOfTile() && this->timer > 5) {
-		if(this->run)
-			doStateChange(&StateID_Chase);
-		else 
+		if(!this->run)
 			doStateChange(&StateID_Walk);
+		else
+			doStateChange(&StateID_Chase);
 	}
 
 	if(this->chrAnimation.isAnimationDone())

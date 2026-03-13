@@ -31,7 +31,7 @@ class APDebugDrawer : public m3d::proc_c {
 };
 
 static APDebugDrawer defaultInstance;
-static bool enableDebugMode = false;
+static bool enableDebugMode = true;
 
 static int downHeldFrames = 0;
 static bool holdToggleLatched = false;
